@@ -1,0 +1,24 @@
+{
+    "appKeys": {},
+    "capabilities": [
+        ""
+    ],
+    "companyName": "anthony0857@gmail.com",
+    "longName": "Calendar Event Percent",
+    "projectType": "native",
+    "resources": {
+        "media": []
+    },
+    "sdkVersion": "3",
+    "shortName": "Calendar Event Percent",
+    "targetPlatforms": [
+        "aplite",
+        "basalt",
+        "chalk"
+    ],
+    "uuid": "aeb130aa-c1d5-43b1-aa55-4ae7c42eb9be",
+    "versionLabel": "1.0",
+    "watchapp": {
+        "watchface": true
+    }
+}
