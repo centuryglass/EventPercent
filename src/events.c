@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "events.h"
+#include "message.h"
+#include "util.h"
 
 struct eventStruct{
   char title[MAX_EVENT_LENGTH];
@@ -11,7 +13,12 @@ struct eventStruct{
   char color[7];
 };
 struct eventStruct events[NUM_EVENTS];
-int init = 0;
+
+int init = 0;//Equals 1 iff initEvents has been run
+
+//Initializes the eventStruct
+//All functions in this class should make sure this one
+//has been run before doing anything else
 void initEvents(){
   int i;
   for(i = 0; i < NUM_EVENTS; i++){
@@ -33,51 +40,14 @@ void initEvents(){
 */
 void setEvent(int numEvent,char *title,long start,long end,char* color){
   if(!init)initEvents();
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"creating an event with title %s",title);
   strcpy(events[numEvent].title,title);
+  
   strcpy(events[numEvent].color,color);
   events[numEvent].start = start;
   events[numEvent].end = end;
 }
 
-/**
-*Returns the long value of a char string
-*@param str the string
-*@param strlen length to convert
-*@return the represented long's value
-*/
-long stol(char * str,int strlen){
-  long val=0;
-  long base=1;
-  int i;
-  for(i=strlen-1;i>=0;i--){
-    val += (str[i]-'0')*base;
-    base *= 10;
-    //APP_LOG(APP_LOG_LEVEL_DEBUG,"Val = %lld, base = %lld, i = %i, str = %s",val,base,i,str);
-  }
-  return val;
-}
-/**
-*Copies a long's value into a string
-*@param val the long to copy
-*@param str the buffer string to copy into
-*@param strlen the length of the buffer
-*@return a pointer to str if conversion succeeds, null if it fails 
-*/
-char *ltos(long val, char *str,int strlen){
-  int base = 1;
-  while(val/(base*10) != 0)base *= 10;
-  int i = 0;
-  while(val > 0){
-    //APP_LOG(APP_LOG_LEVEL_DEBUG,"Val = %ld, base = %i, i = %i, str = %s",val,base,i,str);
-    str[i] = '0' + val/base;
-    val%=base;
-    base/=10;
-    if(!(i==0 && str[i]=='0'))i++;//no leading zeroes allowed
-    if(i > strlen)return NULL;//respect the buffer size
-  }
-  str[i]='\0';//must be null terminated
-  return str;
-}
 
 /**
 *Gets one of the stored event titles
@@ -103,53 +73,84 @@ char *getEventTitle(int numEvent,char *buffer,int bufSize){
 *@return buffer if operation succeeds, NULL otherwise
 */
 char *getEventTimeString(int numEvent,char *buffer,int bufSize){
-  if(!init)initEvents();
-  if(numEvent >= NUM_EVENTS)return NULL;
-  if(events[numEvent].start == 0)return NULL;
-  
+  if(!init)initEvents();//Must be initialized
+  if(numEvent >= NUM_EVENTS)return NULL;//Ensure event exists
+  if(events[numEvent].start == 0)return NULL;//Ensure event has a start time
+  if(strcmp(events[numEvent].title,"") == 0)return NULL;//Ensure event has a title
   time_t now = time(NULL);
+  if(events[numEvent].end < now){//Event is over, request new data and return null
+    requestEventUpdates();
+    return NULL;
+  }
   //APP_LOG(APP_LOG_LEVEL_DEBUG,"Time found");
-  if(events[numEvent].start <= (long)now){
-    int percent = (int)(100 *((float)((long)now - events[numEvent].start) 
-                              /(events[numEvent].end - events[numEvent].start)));
+  if(events[numEvent].start <= (long)now){//Get percent complete if event has started
+    float eventDuration = events[numEvent].end - events[numEvent].start;
+    float timeElapsed = (float)((long)now - events[numEvent].start);
+    int percent = (int)(100 * timeElapsed / eventDuration);
     if(ltos((long)percent,buffer,bufSize)==NULL)return NULL;
     if(((int)strlen(buffer)+(int)strlen("% complete"))>bufSize)return NULL;
     strcat(buffer,"% complete");
-  }else{
+  }else{//Get time until event if event hasn't started
     long time = events[numEvent].start - now;
     long weeks =0,days=0,hours=0,minutes=0;
     if(time>0)weeks = time / 604800;
     time %= 604800;
     if(time>0)days = time / 86400;
-    time &= 86400;
+    time %= 86400;
     if(time>0)hours = time / 3600;
-    time &= 3600;
+    time %= 3600;
     if(time>0)minutes = time / 60;
     char buf[20];
+    strcpy(buffer,"");
     if(weeks != 0){
       if(ltos(weeks,buf,20)!=NULL){
-        strcpy(buffer,buf);
-        strcat(buffer," weeks");
+        strcat(buffer,buf);
+        if(weeks >1) strcat(buffer," Weeks,");
+        else strcat(buffer," Week,");
       }
     }
     if(days != 0){
       if(ltos(days,buf,20)!=NULL){
         strcat(buffer,buf);
-        strcat(buffer," days");
+        if(days > 1)strcat(buffer," Days,");
+        else strcat(buffer," Day,");
       }
     }
     if(hours != 0){
       if(ltos(hours,buf,20)!=NULL){
         strcat(buffer,buf);
-        strcat(buffer," hours");
+        if(hours>1)strcat(buffer," Hours,");
+        else strcat(buffer," Hour,");
       }
     }
-    if(minutes != 0){
-      if(ltos(days,buf,20)!=NULL){
+    if(ltos(minutes,buf,20)!=NULL){
         strcat(buffer,buf);
-        strcat(buffer," minutes");
-      }
+        strcat(buffer," Min.");
     }
+    /*DEBUG routine
+    struct tm *tick_time = localtime((time_t *)&(events[numEvent].start));
+    static char s_buffer[16];
+    strftime(s_buffer, sizeof(s_buffer), clock_is_24h_style() ? "%H:%M %d %e" : "%I:%M %d %e", tick_time);
+    APP_LOG(APP_LOG_LEVEL_DEBUG,"Event %s starts at %s, %s from now",events[numEvent].title,s_buffer,buffer);
+    tick_time = localtime((time_t *)&(events[numEvent].end));
+    strftime(s_buffer, sizeof(s_buffer), clock_is_24h_style() ? "%H:%M %d %e" : "%I:%M %d %e", tick_time);
+    APP_LOG(APP_LOG_LEVEL_DEBUG,"Event %s ends at %s",events[numEvent].title,s_buffer);
+    */ 
   }
   return buffer;
+}
+
+//Requests updated event info from the companion app
+void requestEventUpdates(){
+  uint8_t buf[DICT_SIZE];
+  DictionaryIterator iter;
+  //request all events:
+  dict_write_begin(&iter,buf,DICT_SIZE);
+  dict_write_cstring(&iter, KEY_REQUEST, "Event request");
+  dict_write_int32(&iter, KEY_BATTERY_UPDATE, 1);
+  dict_write_int32(&iter,KEY_EVENT_NUM,NUM_EVENTS);
+  dict_write_end(&iter);
+  add_message(buf);
+  //APP_LOG(APP_LOG_LEVEL_DEBUG,"Attempting to send message");
+  send_message();
 }

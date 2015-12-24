@@ -26,26 +26,37 @@ void add_message(uint8_t dictBuf[DICT_SIZE]){
   APP_LOG(APP_LOG_LEVEL_DEBUG,"Added message to queue");
 }
 
+
 //Sends the first message in the queue
 void send_message(){
   if(messageStack == NULL)return;
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"Retrieved message from queue");
+  //APP_LOG(APP_LOG_LEVEL_DEBUG,"Retrieved message from queue");
   DictionaryIterator read,*send;
   app_message_outbox_begin(&send);
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"Copying message data");
-  dict_read_begin_from_buffer(send, messageStack->buffer, DICT_SIZE);
-  uint32_t size = OUTBOX_SIZE;
-  Tuple * req = dict_find(send,0);
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"Request is %s",req->value->cstring);
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"Attempting dictionary merge");
-  DictionaryResult result =dict_merge(send,&size,&read,false,0,0);
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"Dictionary size out is %d",(int)size);
-  if(result == DICT_OK) app_message_outbox_send();
-  else if(result == DICT_INVALID_ARGS){
-    APP_LOG(APP_LOG_LEVEL_ERROR,"Dict merge failed, invalid args");
-  }else if(result == DICT_NOT_ENOUGH_STORAGE){
-    APP_LOG(APP_LOG_LEVEL_ERROR,"Dict merge failed, not enough storage");
+  //APP_LOG(APP_LOG_LEVEL_DEBUG,"Copying message data");
+  Tuple * dictItem = dict_read_begin_from_buffer(&read, messageStack->buffer, DICT_SIZE);
+  while(dictItem != NULL){
+    uint32_t key = dictItem->key;
+    uint16_t size = dictItem->length;
+    if(dictItem->type == TUPLE_BYTE_ARRAY){
+      dict_write_data(send,key,dictItem->value->data,size);
+    }
+    else if(dictItem->type == TUPLE_CSTRING){
+      dict_write_cstring(send, key, dictItem->value->cstring);
+    }
+    if(dictItem->type == TUPLE_UINT){
+      uint32_t  val = dictItem->value->uint32;
+      dict_write_int(send,key,(int *)&val,size,false);
+    }
+    if(dictItem->type == TUPLE_INT){
+      int32_t val = dictItem->value->int32;
+      dict_write_int(send,key,(int *)&val,size,true);
+    }  
+    dictItem = dict_read_next(&read);
   }
+  //APP_LOG(APP_LOG_LEVEL_DEBUG,"Sending message");
+  //debugDictionary(&read);
+  app_message_outbox_send();
 }
 
 //Removes the first message in the queue
@@ -69,3 +80,4 @@ int message_queue_empty(){
   if(messageStack == NULL)return 1;
   return 0;
 }
+

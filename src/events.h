@@ -1,6 +1,6 @@
 #pragma once
 #define MAX_EVENT_LENGTH 64
-#define NUM_EVENTS 3
+#define NUM_EVENTS 2
 
 /**
 *Stores an event
@@ -30,3 +30,6 @@ char *getEventTitle(int numEvent,char *buffer,int bufSize);
 *@return buffer if operation succeeds, NULL otherwise
 */
 char *getEventTimeString(int numEvent,char *buffer,int bufSize);
+
+//Requests updated event info from the companion app
+void requestEventUpdates();
