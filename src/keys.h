@@ -1,0 +1,17 @@
+#pragma once
+
+//APPMESSAGE KEY DEFINITIONS
+#define KEY_REQUEST 0
+#define KEY_BATTERY_UPDATE 1
+#define KEY_EVENT_TITLE 2
+#define KEY_EVENT_START 3
+#define KEY_EVENT_END 4
+#define KEY_EVENT_COLOR 5
+#define KEY_EVENT_NUM 6
+#define KEY_UPDATE_FREQ 7
+
+//Persistant storage keys
+#define KEY_LASTUPDATE 0
+#define KEY_UPDATEFREQ 1
+#define KEY_EVENTS 20
+#define KEY_EVENT_DATA_BEGIN 99

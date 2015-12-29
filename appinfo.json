@@ -9,17 +9,17 @@
     "resources": {
         "media": [
             {
-                "characterRegex": "[0-9:.a-zA-Z%@*! _,?']",
-                "compatibility": "2.7",
+                "characterRegex": "[0-9:.a-zA-Z%@*! _-+,?']",
                 "file": "fonts/coders_crux.ttf",
-                "name": "CODERS_CRUX_16",
+                "name": "CODERS_CRUX_48",
                 "targetPlatforms": null,
                 "type": "font"
             },
             {
-                "characterRegex": "[0-9:.a-zA-Z%@*! _,?']",
+                "characterRegex": "[0-9:.a-zA-Z%@*! _-+,?']",
+                "compatibility": "2.7",
                 "file": "fonts/coders_crux.ttf",
-                "name": "CODERS_CRUX_48",
+                "name": "CODERS_CRUX_16",
                 "targetPlatforms": null,
                 "type": "font"
             }
