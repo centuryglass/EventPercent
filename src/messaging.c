@@ -5,43 +5,77 @@
 #include "util.h"
 #include "keys.h"
 
-//LOCAL VALUE DEFINITIONS
-#define DEBUG 0 //set to 1 to enable messaging debug logging
+//----------LOCAL VALUE DEFINITIONS----------
+#define DEBUG 0 //Set to 1 to enable messaging debug logging
 
-//MESSAGE STACK STRUCTURE
+//----------MESSAGE STACK STRUCTURE----------
 struct msgStack{
-  uint8_t buffer[DICT_SIZE];
-  struct msgStack * next;
+  uint8_t buffer[DICT_SIZE];//Message dictionary buffer
+  struct msgStack * next;//Link to the next message
 };
 
-//STATIC VARIABLES
+//----------STATIC VARIABLES----------
 static struct msgStack * messageStack = NULL; //Unsent message stack
 static int init = 0;//Equals 1 iff messaging_init has been run
 
-//STATIC FUNCTION DECLARATIONS
+//----------STATIC FUNCTION DECLARATIONS----------
 /**
 *adds a new message to the queue
 *param dictBuf a dictionary buffer containing the new message
 */
 static void add_message(uint8_t dictBuf[DICT_SIZE]);
+
 /**
 *Sends the first message in the queue
 */
 static void send_message();
+
 /**
 *Removes the first message in the queue
 */
 static void delete_message();
-//AppMessage callback functions
+
+/**
+*Automatically called whenever a message is recieved
+*@param iterator the message data iterator
+*@param context is required but unused
+*@post message data is read and processed
+*/
 static void inbox_received_callback(DictionaryIterator *iterator, void *context);
+
+/**
+*Automatically called whenever recieving a message fails
+*@param reason the failure reason
+*@param context is required but unused
+*@post new update data is requested
+*/
 static void inbox_dropped_callback(AppMessageResult reason, void *context);
+
+/**
+*Automatically calls whenever sending a message fails
+*@param iterator data from the failed send
+*@param reason the failure reason
+*@param context is required but unused
+*@post the message is re-sent
+*/
 static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context);
+
+/**
+*Automatically calls whenever sending a message succeeds
+*@param iterator data from the sent message
+*@param context is required but unused
+*@post the sent message is removed from the message queue
+*/
 static void outbox_sent_callback(DictionaryIterator *iterator, void *context);
 
-//PUBLIC FUNCTIONS
 /**
-*Initializes AppMessage functionality
+*Given an error appMessageResult, prints debug data explaining the result
+*@param result the message result
 */
+static void log_result_info(AppMessageResult result);
+
+//----------PUBLIC FUNCTIONS----------
+//Initializes AppMessage functionality
 void messaging_init(){
   if(!init){
     // Register AppMessage callbacks
@@ -54,9 +88,8 @@ void messaging_init(){
     init = 1;
   }
 }
-/**
-*Shuts down AppMessage functionality
-*/
+
+//Shuts down AppMessage functionality
 void messaging_deinit(){
   if(init){
     while(messageStack != NULL){
@@ -65,9 +98,8 @@ void messaging_deinit(){
     init = 0;
   }
 }
-/**
-*Requests updated event info from the companion app
-*/
+
+//Requests updated event info from the companion app
 void request_event_updates(){
   if(!init)messaging_init();
   uint8_t buf[DICT_SIZE];
@@ -79,12 +111,11 @@ void request_event_updates(){
   dict_write_int32(&iter,KEY_EVENT_NUM,NUM_EVENTS);
   dict_write_end(&iter);
   add_message(buf);
-  if(DEBUG)APP_LOG(APP_LOG_LEVEL_DEBUG,"Attempting to send message");
+  if(DEBUG)APP_LOG(APP_LOG_LEVEL_DEBUG,"request_event_updates:Attempting to send request");
   send_message();
 }
-/**
-*Requests updated battery info from the companion app
-*/
+
+//Requests updated battery info from the companion app
 void request_battery_update(){
   if(!init)messaging_init();
   uint8_t buf[DICT_SIZE];
@@ -93,11 +124,11 @@ void request_battery_update(){
   dict_write_cstring(&iter, KEY_BATTERY_UPDATE, "update");
   dict_write_end(&iter);
   add_message(buf);
-  if(DEBUG)APP_LOG(APP_LOG_LEVEL_DEBUG,"Attempting to send message");
+  if(DEBUG)APP_LOG(APP_LOG_LEVEL_DEBUG,"request_battery_update:Attempting to send request");
   send_message();
 }
 
-//STATIC FUNCTIONS
+//----------STATIC FUNCTIONS----------
 /**
 *adds a new message to the queue
 */
@@ -125,6 +156,7 @@ static void add_message(uint8_t dictBuf[DICT_SIZE]){
   (*index)->next = NULL;
   if(DEBUG)APP_LOG(APP_LOG_LEVEL_DEBUG,"add_message:Added message to queue");
 }
+
 /**
 *Sends the first message in the queue
 */
@@ -164,6 +196,7 @@ static void send_message(){
   if(DEBUG)debugDictionary(&read);
   app_message_outbox_send();
 }
+
 /**
 *Removes the first message in the queue
 */
@@ -173,16 +206,19 @@ static void delete_message(){
     struct msgStack * old = messageStack;
     messageStack = messageStack->next;
     free(old);
+    if(DEBUG)APP_LOG(APP_LOG_LEVEL_DEBUG,"delete_message:old message deleted");
   }
 }
-//AppMessage callback functions
+
+//Automatically called whenever a message is recieved
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
-  if(DEBUG)APP_LOG(APP_LOG_LEVEL_DEBUG,"Message received");
+  if(DEBUG)APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Message received");
   Tuple *request = dict_find(iterator,KEY_REQUEST);
   Tuple *battery = dict_find(iterator,KEY_BATTERY_UPDATE);
 
   if(request != NULL){
     if(strcmp(request->value->cstring,"Event sent") == 0){
+      if(DEBUG)APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Recieved event data");
       Tuple *title = dict_find(iterator,KEY_EVENT_TITLE);
       Tuple *start = dict_find(iterator,KEY_EVENT_START);
       Tuple *end = dict_find(iterator,KEY_EVENT_END);
@@ -196,24 +232,101 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
                  end->value->int32,
                  color->value->cstring);   
       }
+      update_event_display();
     }
-    update_event_display();
+    else if(strcmp(request->value->cstring,"Color Update") == 0){
+      if(DEBUG)APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Recieved color data");
+      int i;
+      char newColors [NUM_COLORS][7];
+      for(i=0;i<NUM_COLORS;i++){
+        Tuple * color = dict_find(iterator,KEY_COLORS_BEGIN+i);
+        if(color != NULL){
+          strcpy(newColors[i],color->value->cstring);
+        }else strcpy (newColors[i],"FF0000");//default to white, this should never happen
+      }
+      update_colors(newColors);
+    }  
   }
   if(battery != NULL){
-    if(DEBUG)APP_LOG(APP_LOG_LEVEL_DEBUG,"Getting battery info"); 
+    if(DEBUG)APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Getting battery info"); 
     update_phone_battery(battery->value->cstring);
+  }
+}
+
+//Automatically called whenever recieving a message fails
+static void inbox_dropped_callback(AppMessageResult reason, void *context) {
+  if(DEBUG){
+    APP_LOG(APP_LOG_LEVEL_ERROR, "inbox_dropped_callback:Message dropped");
+    log_result_info(reason);
+    APP_LOG(APP_LOG_LEVEL_ERROR, "inbox_dropped_callback:Requesting new updates");
+  }
+  request_event_updates();
+}
+
+//Automatically calls whenever sending a message fails
+static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context) {
+  if(DEBUG){
+    APP_LOG(APP_LOG_LEVEL_ERROR, "outbox_failed_callback:Outbox send failed, attempting to re-send");
+    log_result_info(reason);
+    APP_LOG(APP_LOG_LEVEL_ERROR, "outbox_failed_callback:Attempting to re-send message");
   }
   send_message();
 }
-static void inbox_dropped_callback(AppMessageResult reason, void *context) {
-  if(DEBUG)APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
-  request_event_updates();
-}
-static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context) {
-  if(DEBUG)APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox send failed!");
-  send_message();
-}
+
+//Automatically calls whenever sending a message succeeds
 static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
-  if(DEBUG)APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
+  if(DEBUG)APP_LOG(APP_LOG_LEVEL_INFO, "outbox_sent_callback:Outbox send success!");
   delete_message();
+}
+
+//Given an error appMessageResult, prints debug data explaining the result
+static void log_result_info(AppMessageResult result){
+    switch(result){
+      case APP_MSG_OK:
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_OK");
+        break;
+      case APP_MSG_SEND_TIMEOUT:
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_SEND_TIMEOUT");
+        break;
+      case APP_MSG_SEND_REJECTED:
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_SEND_REJECTED");
+        break;
+      case APP_MSG_NOT_CONNECTED:
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_NOT_CONNECTED");
+        break;
+      case APP_MSG_APP_NOT_RUNNING:
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_APP_NOT_RUNNING");
+        break;
+      case APP_MSG_INVALID_ARGS:
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_INVALID_ARGS");
+        break;
+      case APP_MSG_BUSY:
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_BUSY");
+        break;
+      case APP_MSG_BUFFER_OVERFLOW:
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_BUFFER_OVERFLOW");
+        break;
+      case APP_MSG_ALREADY_RELEASED:
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_ALREADY_RELEASED");
+        break;
+      case APP_MSG_CALLBACK_ALREADY_REGISTERED:
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_CALLBACK_ALREADY_REGISTERED");
+        break;
+      case APP_MSG_CALLBACK_NOT_REGISTERED:
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_CALLBACK_NOT_REGISTERED");
+        break;
+      case APP_MSG_OUT_OF_MEMORY:
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_OUT_OF_MEMORY");
+        break;
+      case APP_MSG_CLOSED:
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_CLOSED");
+        break;
+      case APP_MSG_INTERNAL_ERROR:
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_INTERNAL_ERROR");
+        break;
+      case APP_MSG_INVALID_STATE:
+        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_INVALID_STATE");
+        break;
+  }
+  
 }

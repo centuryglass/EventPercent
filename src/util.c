@@ -41,6 +41,7 @@ char *ltos(long val, char *str,int strlen){
   return str;
 }
 
+//Tests the ltos function
 void ltosTest(){
   char testBuf [10];
   strcpy(testBuf,"");

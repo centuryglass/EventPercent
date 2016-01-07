@@ -19,6 +19,7 @@ void events_init();
 *Shuts down event functionality
 */
 void events_deinit();
+
 /**
 *Stores an event
 *@param numEvent the event slot to set
@@ -39,6 +40,14 @@ void add_event(int numEvent,char *title,long start,long end,char* color);
 char *get_event_title(int numEvent,char *buffer,int bufSize);
 
 /**
+*Gets the percent complete of an event
+*@param numEvent the event to access
+*@return the percent completed, or -1 if event has
+*not yet started
+*/
+int get_percent_complete(int numEvent);
+
+/**
 *Gets one of the stored events' time info as a formatted string
 *Either Days/Hours/Minutes until event, or percent complete
 *@param numEvent the event number
@@ -49,10 +58,18 @@ char *get_event_title(int numEvent,char *buffer,int bufSize);
 char *get_event_time_string(int numEvent,char *buffer,int bufSize);
 
 /**
+*Gets an event's display color
+*@param numEvent the event to access
+*@param buffer color string is copied into this, must be at least 7 bytes
+*/
+void get_event_color(int numEvent,char * buffer);
+
+/**
 *Gets the event update frequency
 *@return the update frequency in seconds
 */
 int get_event_update_freq();
+
 
 /**
 *Sets the event update frequency

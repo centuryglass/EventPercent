@@ -7,28 +7,28 @@
 #include "util.h"
 #include "keys.h"
 
-//LOCAL VALUE DEFINITIONS
+//----------LOCAL VALUE DEFINITIONS----------
 #define DEBUG 0  //set to 1 to enable event debug logging
 #define DEFAULT_UPDATEFREQ 3600  //default event update frequency in seconds
 
-//EVENT DATA STRUCTURE
+//----------EVENT DATA STRUCTURE----------
 struct eventStruct{
-  char title[MAX_EVENT_LENGTH];
-  long start;
-  long end;
-  char color[7];
+  char title[MAX_EVENT_LENGTH];//event title
+  long start;//event start time (seconds)
+  long end;//event end time (seconds)
+  char color[7];//event display color
 };
 
-//STATIC VARIABLES
+//----------STATIC VARIABLES----------
 static struct eventStruct events[NUM_EVENTS];//event data array
 static time_t lastEventUpdate;//Last time event data was updated
 static int updateFreq;//Seconds to wait between event updates
 static int init = 0;//Equals 1 iff events_init has been run
 
-//PUBLIC FUNCTIONS
-/**
-*initializes event functionality 
-*/
+
+
+//----------PUBLIC FUNCTIONS----------
+//initializes event functionality 
 void events_init(){
   if(!init){
     int numKeys, i;
@@ -46,7 +46,7 @@ void events_init(){
       updateFreq = persist_read_int(KEY_UPDATEFREQ);
     }else updateFreq = DEFAULT_UPDATEFREQ;
     
-    //load stored event data 
+    //Load stored event data 
     //Find number of event keys to read
     numKeys =  sizeof(events)/PERSIST_DATA_MAX_LENGTH;
     lastKeySize =  sizeof(events) % PERSIST_DATA_MAX_LENGTH;
@@ -90,15 +90,13 @@ void events_init(){
   init = 1;  
   }
 }
-/**
-*Shuts down event functionality
-*/
+
+//Shuts down event functionality
 void events_deinit(){
   if(init){
     int numKeys, i;
     size_t lastKeySize;
     struct eventStruct * index;
-    
     //Save event data struct
     numKeys =  sizeof(events)/PERSIST_DATA_MAX_LENGTH;
     lastKeySize =  sizeof(events) % PERSIST_DATA_MAX_LENGTH;
@@ -124,88 +122,88 @@ void events_deinit(){
     init = 0;
   }
 }
-/**
-*Gets the event update frequency
-*@return the update frequency in seconds
-*/
+
+//Gets the event update frequency
 int get_event_update_freq(){
   if(!init)events_init();
   return updateFreq;
 }
-/**
-*Sets the event update frequency
-*@param freq the update frequency in seconds
-*/
+
+//Sets the event update frequency
 void set_event_update_freq(int freq){
   if(!init)events_init();
   updateFreq = freq;
 }
-/**
-*Gets the last time event data was updated
-*@return the last update time
-*/
+
+//Gets the last time event data was updated
 time_t get_last_update_time(){
   if(!init)events_init();
   return lastEventUpdate;
 }
-/**
-*Stores an event
-*@param numEvent the event slot to set
-*@param title the event title
-*@param start the event start time
-*@param end the event end time
-*@param color the event color string
-*/
+
+//Stores an event
 void add_event(int numEvent,char *title,long start,long end,char* color){
   if(!init)events_init();
+  if(numEvent >= NUM_EVENTS){
+    APP_LOG(APP_LOG_LEVEL_ERROR,"Event %s is out of bounds at index %d",title,numEvent);
+    return;
+  }
   APP_LOG(APP_LOG_LEVEL_DEBUG,"add_event:creating an event with title %s",title);
   strcpy(events[numEvent].title,title);
-  
   strcpy(events[numEvent].color,color);
   events[numEvent].start = start;
   events[numEvent].end = end;
+  lastEventUpdate = time(NULL);
 }
-/**
-*Gets one of the stored event titles
-*@param numEvent the event number
-*@param buffer the buffer where the event string will be stored
-*@param bufSize number of bytes allocated to the buffer
-*@return buffer if operation succeeds, NULL otherwise
-*/
+
+//Gets one of the stored event titles
 char *get_event_title(int numEvent,char *buffer,int bufSize){
   if(!init)events_init();
-  if(numEvent >= NUM_EVENTS)return NULL;
+  if(numEvent >= NUM_EVENTS)return NULL;//Check if event is within bounds
+  if(strcmp(events[numEvent].title,"")==0)return NULL;//Check if event exists
   if(bufSize<=(int)strlen(events[numEvent].title))return NULL;
   strcpy(buffer,events[numEvent].title);
   return buffer;
 }
-/**
-*Gets one of the stored events' time info as a formatted string
-*Either Days/Hours/Minutes until event, or percent complete
-*@param numEvent the event number
-*@param buffer the buffer where the time string will be stored
-*@param bufSize number of bytes allocated to the buffer
-*@return buffer if operation succeeds, NULL otherwise
-*/
-char *get_event_time_string(int numEvent,char *buffer,int bufSize){
+
+//Gets the percent completed of an event
+int get_percent_complete(int numEvent){
   if(!init)events_init();
-  if(numEvent >= NUM_EVENTS)return NULL;//Ensure event exists
-  if(events[numEvent].start == 0)return NULL;//Ensure event has a start time
-  if(strcmp(events[numEvent].title,"") == 0)return NULL;//Ensure event has a title
+  if(numEvent >= NUM_EVENTS)return -1;//Check if event is within bounds
+  if(strcmp(events[numEvent].title,"")==0)return -1;//Check if event exists
+  if(events[numEvent].start == 0)return -1;//Check if event has a start time
   time_t now = time(NULL);
-  if(events[numEvent].end < now){//Event is over, request new data and return null
-    request_event_updates();
-    return NULL;
-  }
-  //APP_LOG(APP_LOG_LEVEL_DEBUG,"Time found");
-  if(events[numEvent].start <= (long)now){//Get percent complete if event has started
+  if(events[numEvent].start <= (long)now){//Get percent completed if event has started
     float eventDuration = events[numEvent].end - events[numEvent].start;
     float timeElapsed = (float)((long)now - events[numEvent].start);
     int percent = (int)(100 * timeElapsed / eventDuration);
+    if(percent > 100){//Event is past complete
+      percent = 100;
+      request_event_updates();
+    }
+    return percent;
+  }else return -1;
+}
+
+//Gets one of the stored events' time info as a formatted string
+char *get_event_time_string(int numEvent,char *buffer,int bufSize){
+  if(!init)events_init();
+  if(numEvent >= NUM_EVENTS)return NULL;//Check if event is within bounds
+  if(strcmp(events[numEvent].title,"")==0)return NULL;//Check if event exists
+  if(events[numEvent].start == 0)return NULL;//Check if event has a start time
+  if(strcmp(events[numEvent].title,"") == 0)return NULL;//Check if event has a title
+  int percent = get_percent_complete(numEvent);
+  
+  if(percent != -1){//return percent complete if event has started
     if(ltos((long)percent,buffer,bufSize)==NULL)return NULL;
     if(((int)strlen(buffer)+(int)strlen("% complete"))>bufSize)return NULL;
     strcat(buffer,"% complete");
   }else{//Get time until event if event hasn't started
+    time_t now = time(NULL);
+    if(events[numEvent].end < now){//Event is over, request new data and return null
+      request_event_updates();
+      return NULL;
+    }
     long time = events[numEvent].start - now;
     long weeks =0,days=0,hours=0,minutes=0;
     if(time>0)weeks = time / 604800;
@@ -246,13 +244,22 @@ char *get_event_time_string(int numEvent,char *buffer,int bufSize){
       struct tm *tick_time = localtime((time_t *)&(events[numEvent].start));
       static char s_buffer[16];
       strftime(s_buffer, sizeof(s_buffer), clock_is_24h_style() ? "%H:%M %d %e" : "%I:%M %d %e", tick_time);
-      APP_LOG(APP_LOG_LEVEL_DEBUG,"Event %s starts at %s, %s from now",events[numEvent].title,s_buffer,buffer);
+      APP_LOG(APP_LOG_LEVEL_DEBUG,"get_event_time_string:Event %s starts at %s, %s from now",events[numEvent].title,s_buffer,buffer);
       tick_time = localtime((time_t *)&(events[numEvent].end));
       strftime(s_buffer, sizeof(s_buffer), clock_is_24h_style() ? "%H:%M %d %e" : "%I:%M %d %e", tick_time);
-      APP_LOG(APP_LOG_LEVEL_DEBUG,"Event %s ends at %s",events[numEvent].title,s_buffer);
+      APP_LOG(APP_LOG_LEVEL_DEBUG,"get_event_time_string:Event %s ends at %s",events[numEvent].title,s_buffer);
     }
   }
   return buffer;
+}
+
+//Gets an event's display color string
+void get_event_color(int numEvent,char * buffer){
+  if(!init)events_init();
+  if(numEvent >= NUM_EVENTS)return;//Check if event is within bounds
+  if(strcmp(events[numEvent].title,"")==0)return;//Check if event exists
+  if(DEBUG)APP_LOG(APP_LOG_LEVEL_DEBUG,"get_event_color:Copying event number %d color:%s ",numEvent,events[numEvent].color);
+  strcpy(buffer,events[numEvent].color);
 }
 
 
