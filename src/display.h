@@ -43,6 +43,19 @@ void update_watch_battery(char * battery);
 void set_time(time_t newTime);
 
 /**
+*Updates configurable info text
+*@param newText a valid cstring with new display text
+*/
+void update_infoText(char * newText);
+
+/**
+*Updates weather display
+*@param degrees the temperature
+*@param condition an OpenWeatherAPI condition code
+*/
+void update_weather(int degrees, int condition);
+
+/**
 *change color values to the ones stored in a color array
 *@param colorArray an array of NUM_COLOR color strings,
 *each 7 bits long

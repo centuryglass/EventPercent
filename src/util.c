@@ -1,6 +1,41 @@
 #include <pebble.h>
 #include "util.h"
 
+static int savedUptime = 0;
+static time_t lastLaunch = 0;
+
+/**
+*Gets the time since the watchface last launched
+*@return uptime in seconds
+*/
+int getUptime(){
+  return (int)time(NULL) - (int) lastLaunch;
+}
+
+/**
+*Gets the total uptime since installation
+*@return  total uptime in seconds
+*/
+int getTotalUptime(){
+  return savedUptime + getUptime();
+}
+
+/**
+*Sets the total uptime from previous watchface instances
+*@param uptime in seconds
+*/
+void setSavedUptime(int uptime){
+  savedUptime = uptime;
+}
+
+/**
+*Sets the last watchface launch time
+*@param launchTime time set on init
+*/
+void setLaunchTime(time_t launchTime){
+  lastLaunch = launchTime;
+}
+
 /**
 *Returns the long value of a char string
 *@param str the string
@@ -27,6 +62,7 @@ long stol(char * str,int strlen){
 *@return a pointer to str if conversion succeeds, null if it fails 
 */
 char *ltos(long val, char *str,int strlen){
+  /*  All this is unnecessary, just use snprintf()
   int base = 1;
   while(val/(base*10) != 0)base *= 10;
   int i = 0;
@@ -38,6 +74,9 @@ char *ltos(long val, char *str,int strlen){
       if(i > strlen)return NULL;//respect the buffer size
   }
   str[i]='\0';//must be null terminated
+  return str;
+  */
+  snprintf(str, strlen, "%ld", val);
   return str;
 }
 

@@ -64,21 +64,4 @@ char *get_event_time_string(int numEvent,char *buffer,int bufSize);
 */
 void get_event_color(int numEvent,char * buffer);
 
-/**
-*Gets the event update frequency
-*@return the update frequency in seconds
-*/
-int get_event_update_freq();
 
-
-/**
-*Sets the event update frequency
-*@param freq the update frequency in seconds
-*/
-void set_event_update_freq(int freq);
-
-/**
-*Gets the last time event data was updated
-*@return the last update time
-*/
-time_t get_last_update_time();

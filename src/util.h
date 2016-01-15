@@ -7,6 +7,30 @@
 */
 
 /**
+*Gets the time since the watchface last launched
+*@return uptime in seconds
+*/
+int getUptime();
+
+/**
+*Gets the total uptime since installation
+*@return  total uptime in seconds
+*/
+int getTotalUptime();
+
+/**
+*Sets the total uptime from previous watchface instances
+*@param uptime in seconds
+*/
+void setSavedUptime(int uptime);
+
+/**
+*Sets the last watchface launch time
+*@param launchTime time set on init
+*/
+void setLaunchTime(time_t launchTime);
+
+/**
 *Returns the long value of a char string
 *@param str the string
 *@param strlen length to convert

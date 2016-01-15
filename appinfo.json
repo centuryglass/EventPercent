@@ -1,7 +1,7 @@
 {
     "appKeys": {},
     "capabilities": [
-        ""
+        "location"
     ],
     "companyName": "anthony0857@gmail.com",
     "longName": "Calendar Event Percent",
@@ -9,9 +9,16 @@
     "resources": {
         "media": [
             {
+                "file": "images/weathericons.png",
+                "name": "WEATHER_ICONS",
+                "targetPlatforms": null,
+                "type": "bitmap"
+            },
+            {
                 "file": "images/dayProgress.png",
                 "memoryFormat": "SmallestPalette",
                 "name": "DAY_PROGRESS",
+                "spaceOptimization": "memory",
                 "targetPlatforms": null,
                 "type": "bitmap"
             },
@@ -19,34 +26,38 @@
                 "file": "images/progress.png",
                 "memoryFormat": "SmallestPalette",
                 "name": "PROGRESS",
+                "spaceOptimization": "memory",
                 "targetPlatforms": null,
                 "type": "bitmap"
             },
             {
                 "file": "images/calendar2.png",
+                "memoryFormat": "Smallest",
                 "name": "BG2",
+                "spaceOptimization": "memory",
                 "targetPlatforms": null,
                 "type": "bitmap"
             },
             {
                 "file": "images/calendar1.png",
-                "memoryFormat": "SmallestPalette",
+                "memoryFormat": "Smallest",
                 "name": "BG1",
+                "spaceOptimization": "memory",
                 "targetPlatforms": null,
                 "type": "bitmap"
             },
             {
-                "characterRegex": "[0-9:.a-zA-Z%@*! _+,?'\\-]",
+                "characterRegex": "[0-9:.a-zA-Z%@*! _+,?'\\-\u00b0]",
+                "compatibility": "2.7",
                 "file": "fonts/coders_crux.ttf",
-                "name": "CODERS_CRUX_48",
+                "name": "CODERS_CRUX_16",
                 "targetPlatforms": null,
                 "type": "font"
             },
             {
-                "characterRegex": "[0-9:.a-zA-Z%@*! _+,?'\\-]",
-                "compatibility": "2.7",
+                "characterRegex": "[0-9:.a-zA-Z%@*! _+,?'\\-\u00b0]",
                 "file": "fonts/coders_crux.ttf",
-                "name": "CODERS_CRUX_16",
+                "name": "CODERS_CRUX_48",
                 "targetPlatforms": null,
                 "type": "font"
             }
