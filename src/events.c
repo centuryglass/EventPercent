@@ -5,7 +5,7 @@
 #include "events.h"
 #include "messaging.h"
 #include "util.h"
-#include "keys.h"
+#include "storage_keys.h"
 
 //----------LOCAL VALUE DEFINITIONS----------
 //#define DEBUG_EVENTS  //uncomment to enable event debug logging
@@ -18,14 +18,14 @@ struct eventStruct{
   char color[7];//event display color
 };
 
-//----------STATIC VARIABLES----------
-static struct eventStruct events[NUM_EVENTS];//event data array
-static int init = 0;//Equals 1 iff events_init has been run
+//----------LOCAL VARIABLES----------
+struct eventStruct events[NUM_EVENTS] = {{"------",0,0,"000000"}};//event data array
+int events_initialized = 0;//Equals 1 iff events_init has been run
 
 //----------PUBLIC FUNCTIONS----------
 //initializes event functionality 
 void events_init(){
-  if(!init){
+  if(!events_initialized){
     int numKeys, i;
     size_t lastKeySize;
     struct eventStruct * index;
@@ -43,7 +43,7 @@ void events_init(){
     //Load events from storage
     index = events;
     for(i = 0;i < numKeys;i++){
-      int key = KEY_EVENT_DATA_BEGIN+i;
+      int key = PERSIST_KEY_EVENT_DATA_BEGIN+i;
       if(persist_exists(key)){
         size_t keysize, bytesRead;
         if(i == numKeys-1)keysize = lastKeySize;
@@ -67,27 +67,21 @@ void events_init(){
     }
     if(!readSuccess){
       #ifdef DEBUG_EVENTS
-        APP_LOG(APP_LOG_LEVEL_DEBUG,"Failed to find expected key %d, initializing blank event structure",i);
+        APP_LOG(APP_LOG_LEVEL_DEBUG,"Failed to find expected key %d, leaving blank event structure",i);
       #endif
-      for(i = 0; i < NUM_EVENTS; i++){
-        strcpy(events[i].title,"");
-        strcpy(events[i].color,"000000");
-        events[i].start = 0;
-        events[i].end = 0;
-      }
     }
     #ifdef DEBUG_EVENTS
       for(i = 0; i <NUM_EVENTS;i++){
         APP_LOG(APP_LOG_LEVEL_DEBUG,"Restored event %d, titled %s",i,events[i].title);
       }
     #endif
-  init = 1;  
+  events_initialized = 1;  
   }
 }
 
 //Shuts down event functionality
 void events_deinit(){
-  if(init){
+  if(events_initialized){
     int numKeys, i;
     size_t lastKeySize;
     struct eventStruct * index;
@@ -104,7 +98,7 @@ void events_deinit(){
       size_t keysize;
       if(i == numKeys-1)keysize = lastKeySize;
       else keysize = PERSIST_DATA_MAX_LENGTH;
-      size_t bytesWritten =persist_write_data(KEY_EVENT_DATA_BEGIN+i, index, keysize);
+      size_t bytesWritten =persist_write_data(PERSIST_KEY_EVENT_DATA_BEGIN+i, index, keysize);
       
       if(bytesWritten != keysize){
         APP_LOG(APP_LOG_LEVEL_ERROR,
@@ -115,13 +109,13 @@ void events_deinit(){
       #endif
       index += bytesWritten;
     }
-    init = 0;
+    events_initialized = 0;
   }
 }
 
 //Stores an event
 void add_event(int numEvent,char *title,long start,long end,char* color){
-  if(!init)events_init();
+  if(!events_initialized)events_init();
   if(numEvent >= NUM_EVENTS){
     APP_LOG(APP_LOG_LEVEL_ERROR,"Event %s is out of bounds at index %d",title,numEvent);
     return;
@@ -137,7 +131,7 @@ void add_event(int numEvent,char *title,long start,long end,char* color){
 
 //Gets one of the stored event titles
 char *get_event_title(int numEvent,char *buffer,int bufSize){
-  if(!init)events_init();
+  if(!events_initialized)events_init();
   if(numEvent >= NUM_EVENTS)return NULL;//Check if event is within bounds
   if(strcmp(events[numEvent].title,"")==0)return NULL;//Check if event exists
   if(bufSize<=(int)strlen(events[numEvent].title))return NULL;
@@ -147,7 +141,7 @@ char *get_event_title(int numEvent,char *buffer,int bufSize){
 
 //Gets the percent completed of an event
 int get_percent_complete(int numEvent){
-  if(!init)events_init();
+  if(!events_initialized)events_init();
   if(numEvent >= NUM_EVENTS)return -1;//Check if event is within bounds
   if(strcmp(events[numEvent].title,"")==0)return -1;//Check if event exists
   if(events[numEvent].start == 0)return -1;//Check if event has a start time
@@ -165,7 +159,7 @@ int get_percent_complete(int numEvent){
 
 //Gets one of the stored events' time info as a formatted string
 char *get_event_time_string(int numEvent,char *buffer,int bufSize){
-  if(!init)events_init();
+  if(!events_initialized)events_init();
   if(numEvent >= NUM_EVENTS)return NULL;//Check if event is within bounds
   if(strcmp(events[numEvent].title,"")==0)return NULL;//Check if event exists
   if(events[numEvent].start == 0)return NULL;//Check if event has a start time
@@ -173,13 +167,11 @@ char *get_event_time_string(int numEvent,char *buffer,int bufSize){
   int percent = get_percent_complete(numEvent);
   
   if(percent != -1){//return percent complete if event has started
-    if(ltos((long)percent,buffer,bufSize)==NULL)return NULL;
-    if(((int)strlen(buffer)+(int)strlen("% complete"))>bufSize)return NULL;
-    strcat(buffer,"% complete");
+    snprintf(buffer,bufSize,"%d%% complete",percent);
   }else{//Get time until event if event hasn't started
     time_t now = time(NULL);
     if(events[numEvent].end < now){//Event is over, request new data and return null
-      request_update(event_request);
+      request_update(UPDATE_TYPE_EVENT);
       return NULL;
     }
     long time = events[numEvent].start - now;
@@ -194,30 +186,25 @@ char *get_event_time_string(int numEvent,char *buffer,int bufSize){
     char buf[20];
     strcpy(buffer,"");
     if(weeks != 0){
-      if(ltos(weeks,buf,20)!=NULL){
-        strcat(buffer,buf);
-        if(weeks >1) strcat(buffer," Weeks,");
-        else strcat(buffer," Week,");
-      }
+      snprintf(buf,20,"%ld",weeks);
+      strcat(buffer,buf);
+      if(weeks >1) strcat(buffer," Weeks,");
+      else strcat(buffer," Week,");
     }
     if(days != 0){
-      if(ltos(days,buf,20)!=NULL){
-        strcat(buffer,buf);
-        if(days > 1)strcat(buffer," Days,");
-        else strcat(buffer," Day,");
-      }
+      snprintf(buf,20,"%ld",days);
+      strcat(buffer,buf);
+      if(days > 1)strcat(buffer," Days,");
+      else strcat(buffer," Day,");
     }
     if(hours != 0){
-      if(ltos(hours,buf,20)!=NULL){
-        strcat(buffer,buf);
-        if(hours>1)strcat(buffer," Hours,");
-        else strcat(buffer," Hour,");
-      }
+      snprintf(buf,20,"%ld",hours);
+      if(hours>1)strcat(buffer," Hours,");
+      else strcat(buffer," Hour,");
     }
-    if(ltos(minutes,buf,20)!=NULL){
-        strcat(buffer,buf);
-        strcat(buffer," Min.");
-    }
+    snprintf(buf,20,"%ld",minutes);
+    strcat(buffer,buf);
+    strcat(buffer," Min.");
     #ifdef DEBUG_EVENTS 
       struct tm *tick_time = localtime((time_t *)&(events[numEvent].start));
       static char s_buffer[16];
@@ -233,7 +220,7 @@ char *get_event_time_string(int numEvent,char *buffer,int bufSize){
 
 //Gets an event's display color string
 void get_event_color(int numEvent,char * buffer){
-  if(!init)events_init();
+  if(!events_initialized)events_init();
   if(numEvent >= NUM_EVENTS)return;//Check if event is within bounds
   if(strcmp(events[numEvent].title,"")==0)return;//Check if event exists
   #ifdef DEBUG_EVENTS 

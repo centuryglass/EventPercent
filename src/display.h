@@ -24,29 +24,25 @@ void display_deinit();
 */
 void update_event_display();
 
-/**
-*Updates phone battery display value
-*@param battery a cstring containing phone battery info
-*/
-void update_phone_battery(char * battery);
+//defines types of display text that can be directly set
+typedef enum{
+  TEXT_PHONE_BATTERY,//phone battery percentage
+  TEXT_PEBBLE_BATTERY,//pebble battery percentage
+  TEXT_INFOTEXT//configurable infotext display
+} DisplayTextType;
 
 /**
-*Updates pebble battery display value
-*@param battery a cstring containing pebble battery info
+*Directly updates display text
+*@param newText the updated text
+*@param textType which text layer to set
 */
-void update_watch_battery(char * battery);
+void update_display_text(char * newText, DisplayTextType textType);
 
 /**
 *Sets the displayed time and date
 *@param newTime the time data to use to set the time display
 */
 void set_time(time_t newTime);
-
-/**
-*Updates configurable info text
-*@param newText a valid cstring with new display text
-*/
-void update_infoText(char * newText);
 
 /**
 *Updates weather display

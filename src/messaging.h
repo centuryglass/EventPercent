@@ -6,18 +6,16 @@
 #pragma once
 #include <pebble.h>
 
-#define DICT_SIZE 256 //AppMessage dictionary size
+#define DICT_SIZE 128//AppMessage dictionary size
 
-enum REQUEST{//valid request types
-  event_request,
-  battery_request,
-  infotext_request,
-  weather_request,
-  color_update,
-  event_sent,
-  weather_sent,
-  watch_info_request
-};
+//All valid data update types
+typedef enum{
+  UPDATE_TYPE_EVENT,
+  UPDATE_TYPE_BATTERY,
+  UPDATE_TYPE_INFOTEXT,
+  UPDATE_TYPE_WEATHER,
+  NUM_UPDATE_TYPES = 4
+} UpdateType;
 
 /**
 *Initializes AppMessage functionality
@@ -31,22 +29,22 @@ void messaging_deinit();
 
 /**
 *Requests updated info from the companion app
-*@param requestType a valid request type 
+*@param updateType the appropriate update request code
 */
-void request_update(enum REQUEST requestType);
+void request_update(UpdateType updateType);
 
 /**
 *Gets the update frequency for a given request
-*@param requestType a request type
+*@param updateType the appropriate update request code
 *@return update frequency in seconds
 */
-int get_update_frequency(enum REQUEST requestType);
+int get_update_frequency(UpdateType updateType);
 
 /**
-*Gets the last time a given request was made
-*@param requestType a request type
+*Gets the last time a given update was received
+*@param UpdateType the appropriate update request code
 *@return update time
 */
-time_t get_request_time(enum REQUEST requestType);
+time_t get_update_time(UpdateType updateType);
 
 

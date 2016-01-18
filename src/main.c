@@ -3,10 +3,10 @@
 #include "messaging.h"
 #include "util.h"
 #include "display.h"
-#include "keys.h"
+#include "storage_keys.h"
 
 //----------LOCAL VALUE DEFINITIONS----------
-#define DEBUG_MAIN  //uncomment enable main program debug logging
+//#define DEBUG_MAIN  //uncomment enable main program debug logging
 
 //----------STATIC FUNCTIONS----------
 /**
@@ -19,62 +19,47 @@ static void update_time() {
   
   //if phone is connected, possibly get updates
   if(connection_service_peek_pebble_app_connection()){
-    time_t lastEventRequest,lastBatteryRequest,lastInfoRequest,lastWeatherRequest;
-    int eventUpdateFreq, battUpdateFreq, infoUpdateFreq,weatherUpdateFreq;
-    //Load last update times
-    lastEventRequest = get_request_time(event_request);
-    lastBatteryRequest = get_request_time(battery_request);
-    lastInfoRequest = get_request_time(infotext_request);
-    lastWeatherRequest = get_request_time(weather_request);
-    
-    eventUpdateFreq = get_update_frequency(event_request);
-    battUpdateFreq = get_update_frequency(battery_request);
-    infoUpdateFreq = get_update_frequency(infotext_request);
-    weatherUpdateFreq = get_update_frequency(weather_request);
-    #ifdef DEBUG_MAIN
-      APP_LOG(APP_LOG_LEVEL_DEBUG,"update_time:Events= Last Update:%d Next Update Scheduled in %d seconds",
-            (int)lastEventRequest,(int)lastEventRequest+eventUpdateFreq-(int)now);
-      APP_LOG(APP_LOG_LEVEL_DEBUG,"update_time:Battery= Last Update:%d Next Update Scheduled in %d seconds",
-            (int)lastBatteryRequest,(int)lastBatteryRequest+battUpdateFreq-(int)now);
-      APP_LOG(APP_LOG_LEVEL_DEBUG,"update_time:InfoText= Last Update:%d Next Update Scheduled in %d seconds",
-            (int)lastInfoRequest,(int)lastInfoRequest+infoUpdateFreq-(int)now);
-      APP_LOG(APP_LOG_LEVEL_DEBUG,"update_time:Weather= Last Update:%d Next Update Scheduled in %d seconds",
-            (int)lastWeatherRequest,(int)lastWeatherRequest+weatherUpdateFreq-(int)now);
-    #endif
-    if(now > (lastEventRequest + eventUpdateFreq)){//event update
-      #ifdef DEBUG_MAIN
-        APP_LOG(APP_LOG_LEVEL_DEBUG,"update_time: sending request:Event request");
+    for(int i = 0; i < NUM_UPDATE_TYPES; i++){
+      //load update time & update frequency
+      time_t lastUpdate = get_update_time(i);
+      int updateFreq = get_update_frequency(i);
+      #ifdef DEBUG_MAIN 
+        char updateType[10];
+        switch((UpdateType) i){
+          case UPDATE_TYPE_EVENT:
+            strcpy(updateType,"Events");
+            break;
+          case UPDATE_TYPE_BATTERY:
+            strcpy(updateType,"Battery");
+            break;
+          case UPDATE_TYPE_WEATHER:
+            strcpy(updateType,"Weather");
+            break;
+          case UPDATE_TYPE_INFOTEXT:
+            strcpy(updateType,"InfoText");
+            break;
+          default:
+            strcpy(updateType,"!Invalid Type!");
+        }
+        APP_LOG(APP_LOG_LEVEL_DEBUG,"update_time:%s= Last Update:%d Next: %d minutes, updateFreq:%d min",
+              updateType,(int)lastUpdate,((int)lastUpdate+updateFreq-(int)now)/60,updateFreq/60);
       #endif
-      request_update(event_request);
-    }
-    if(now > (lastBatteryRequest + battUpdateFreq)){//battery update
-      #ifdef DEBUG_MAIN
-        APP_LOG(APP_LOG_LEVEL_DEBUG,"update_time: sending request:Battery request");
-      #endif
-      request_update(battery_request);
-    }
-    if(now > (lastInfoRequest + infoUpdateFreq)){//infotext update
-      #ifdef DEBUG_MAIN
-        APP_LOG(APP_LOG_LEVEL_DEBUG,"update_time: sending request:InfoText request");
-      #endif
-      request_update(infotext_request);
-    }
-    if(now > (lastWeatherRequest + weatherUpdateFreq)){//weather update
-      #ifdef DEBUG_MAIN
-        APP_LOG(APP_LOG_LEVEL_DEBUG,"update_time: sending request:Weather request");
-      #endif
-      request_update(weather_request);     
-    }
-    
-  }else{//phone is disconnected, set phone battery to X
-    update_phone_battery("X");
+      if(now > (lastUpdate + updateFreq)){
+        #ifdef DEBUG_MAIN
+          APP_LOG(APP_LOG_LEVEL_DEBUG,"update_time: sending request");
+        #endif
+        request_update(i);
+      }
+    }    
   }
+  else update_display_text("X",TEXT_PHONE_BATTERY);//phone is disconnected, set phone battery to X
+  
   //Finally,update pebble battery info
   char pbl_battery_buf[7];
   BatteryChargeState charge_state = battery_state_service_peek();
   snprintf(pbl_battery_buf, sizeof(pbl_battery_buf), "%d%%", charge_state.charge_percent);
   if (charge_state.is_charging) strcat(pbl_battery_buf,"+");
-  update_watch_battery(pbl_battery_buf);
+  update_display_text(pbl_battery_buf,TEXT_PEBBLE_BATTERY);
 }
 
 //Automatically called every minute
@@ -87,7 +72,6 @@ void handle_init(void) {
   #ifdef DEBUG_MAIN 
     APP_LOG(APP_LOG_LEVEL_DEBUG,"handle_init:INIT BEGIN");
   #endif
-  
   //save launch time for stats
   setLaunchTime(time(NULL));
   if(persist_exists(PERSIST_KEY_UPTIME))
