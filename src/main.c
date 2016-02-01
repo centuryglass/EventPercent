@@ -1,12 +1,12 @@
 #include <pebble.h>
 #include "events.h"
-#include "messaging.h"
+#include "message_handler.h"
 #include "util.h"
-#include "display.h"
+#include "display_handler.h"
 #include "storage_keys.h"
 
 //----------LOCAL VALUE DEFINITIONS----------
-//#define DEBUG_MAIN  //uncomment enable main program debug logging
+//#define DEBUG_MAIN  //uncomment to enable main program debug logging
 
 //----------STATIC FUNCTIONS----------
 /**
@@ -15,8 +15,15 @@
 static void update_time() {
   time_t now = time(NULL);
   set_time(now);//update time display
-  update_event_display(); //update event display information
-  
+  for(int i = 0; i < NUM_EVENTS; i++){//update display events
+    char eventTitle[MAX_EVENT_LENGTH];
+    char eventTime[MAX_EVENT_LENGTH];
+    char eventColor[7];
+    get_event_title(i, eventTitle, sizeof(eventTitle));
+    get_event_time_string(i, eventTime, sizeof(eventTime));
+    get_event_color(i, eventColor);
+    update_event_display(i, eventTitle, eventTime, get_percent_complete(i), eventColor);
+  }
   //if phone is connected, possibly get updates
   if(connection_service_peek_pebble_app_connection()){
     for(int i = 0; i < NUM_UPDATE_TYPES; i++){
@@ -39,7 +46,7 @@ static void update_time() {
             strcpy(updateType,"InfoText");
             break;
           default:
-            strcpy(updateType,"!Invalid Type!");
+            strcpy(updateType,"Invalid Type!");
         }
         APP_LOG(APP_LOG_LEVEL_DEBUG,"update_time:%s= Last Update:%d Next: %d minutes, updateFreq:%d min",
               updateType,(int)lastUpdate,((int)lastUpdate+updateFreq-(int)now)/60,updateFreq/60);
@@ -52,14 +59,18 @@ static void update_time() {
       }
     }    
   }
-  else update_display_text("X",TEXT_PHONE_BATTERY);//phone is disconnected, set phone battery to X
+  else update_text("X",TEXT_PHONE_BATTERY);//phone is disconnected, set phone battery to X
   
   //Finally,update pebble battery info
-  char pbl_battery_buf[7];
-  BatteryChargeState charge_state = battery_state_service_peek();
-  snprintf(pbl_battery_buf, sizeof(pbl_battery_buf), "%d%%", charge_state.charge_percent);
-  if (charge_state.is_charging) strcat(pbl_battery_buf,"+");
-  update_display_text(pbl_battery_buf,TEXT_PEBBLE_BATTERY);
+  char pbl_battery_buf[6];
+  getPebbleBattery(pbl_battery_buf);
+  update_text(pbl_battery_buf,TEXT_PEBBLE_BATTERY);
+  //for preview purposes only
+        //add_event(0,"Work",now - 14600,now+23530,"FF0000");
+        //add_event(1,"Sleep",now + 999560,now+1000000,"FFFF00");
+        //update_weather(30,808);
+        //update_text("84%",TEXT_PHONE_BATTERY);
+        //update_text("Cloudy",TEXT_INFOTEXT);
 }
 
 //Automatically called every minute
@@ -77,24 +88,23 @@ void handle_init(void) {
   if(persist_exists(PERSIST_KEY_UPTIME))
     setSavedUptime(persist_read_int(PERSIST_KEY_UPTIME));
   //initialize modules
-  events_init();
   display_init();
-  messaging_init();
+  events_init();
+  message_handler_init();
    // Register with TickTimerService
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
   // Make sure the time is displayed from the start
-  update_time(); 
+  update_time();
   #ifdef DEBUG_MAIN 
-    APP_LOG(APP_LOG_LEVEL_DEBUG,"handle_init:INIT SUCCESS");
-  #endif
-  
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"handle_init:INIT SUCCESS");
+  #endif 
 }
 
 //unload program
 void handle_deinit(void) {
-  display_deinit();
   events_deinit();
   messaging_deinit();
+  display_deinit();
   //Update runtime stats
   persist_write_int(PERSIST_KEY_UPTIME, getTotalUptime());
 }

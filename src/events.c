@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "events.h"
-#include "messaging.h"
+#include "message_handler.h"
 #include "util.h"
 #include "storage_keys.h"
 
@@ -21,6 +21,8 @@ struct eventStruct{
 //----------LOCAL VARIABLES----------
 struct eventStruct events[NUM_EVENTS] = {{"------",0,0,"000000"}};//event data array
 int events_initialized = 0;//Equals 1 iff events_init has been run
+FutureEventFormat futureEventFormat = TIME_REMAINING_ONLY;
+//Time display format for upcoming events
 
 //----------PUBLIC FUNCTIONS----------
 //initializes event functionality 
@@ -75,6 +77,8 @@ void events_init(){
         APP_LOG(APP_LOG_LEVEL_DEBUG,"Restored event %d, titled %s",i,events[i].title);
       }
     #endif
+  if(persist_exists(PERSIST_KEY_FUTURE_EVENT_FORMAT))
+    futureEventFormat = persist_read_int(PERSIST_KEY_FUTURE_EVENT_FORMAT);
   events_initialized = 1;  
   }
 }
@@ -109,6 +113,7 @@ void events_deinit(){
       #endif
       index += bytesWritten;
     }
+    persist_write_int(PERSIST_KEY_FUTURE_EVENT_FORMAT, futureEventFormat);
     events_initialized = 0;
   }
 }
@@ -123,8 +128,8 @@ void add_event(int numEvent,char *title,long start,long end,char* color){
   #ifdef DEBUG_EVENTS 
     APP_LOG(APP_LOG_LEVEL_DEBUG,"add_event:creating an event with title %s",title);
   #endif
-  strcpy(events[numEvent].title,title);
-  strcpy(events[numEvent].color,color);
+  strncpy(events[numEvent].title,title,MAX_EVENT_LENGTH);
+  strncpy(events[numEvent].color,color,7);
   events[numEvent].start = start;
   events[numEvent].end = end;
 }
@@ -135,7 +140,7 @@ char *get_event_title(int numEvent,char *buffer,int bufSize){
   if(numEvent >= NUM_EVENTS)return NULL;//Check if event is within bounds
   if(strcmp(events[numEvent].title,"")==0)return NULL;//Check if event exists
   if(bufSize<=(int)strlen(events[numEvent].title))return NULL;
-  strcpy(buffer,events[numEvent].title);
+  strncpy(buffer,events[numEvent].title,bufSize);
   return buffer;
 }
 
@@ -188,23 +193,47 @@ char *get_event_time_string(int numEvent,char *buffer,int bufSize){
     if(weeks != 0){
       snprintf(buf,20,"%ld",weeks);
       strcat(buffer,buf);
-      if(weeks >1) strcat(buffer," Weeks,");
-      else strcat(buffer," Week,");
+      if(futureEventFormat == TIME_REMAINING_ONLY){
+        if(weeks >1) strcat(buffer," Weeks,");
+        else strcat(buffer," Week,");
+      }
+      else strcat(buffer,"W:");
     }
     if(days != 0){
       snprintf(buf,20,"%ld",days);
       strcat(buffer,buf);
-      if(days > 1)strcat(buffer," Days,");
-      else strcat(buffer," Day,");
+      if(futureEventFormat == TIME_REMAINING_ONLY){
+        if(days > 1)strcat(buffer," Days,");
+        else strcat(buffer," Day,");
+      }
+      else strcat(buffer,"D:");
     }
     if(hours != 0){
       snprintf(buf,20,"%ld",hours);
-      if(hours>1)strcat(buffer," Hours,");
-      else strcat(buffer," Hour,");
+      strcat(buffer,buf);
+      if(futureEventFormat == TIME_REMAINING_ONLY){
+        if(hours>1)strcat(buffer," Hours,");
+        else strcat(buffer," Hour,");
+      }
+      else strcat(buffer,"H:");
     }
-    snprintf(buf,20,"%ld",minutes);
-    strcat(buffer,buf);
-    strcat(buffer," Min.");
+    if(weeks == 0){
+      snprintf(buf,20,"%ld",minutes);
+      strcat(buffer,buf);
+      if(futureEventFormat == TIME_REMAINING_ONLY)
+        strcat(buffer," Min.");
+      else strcat(buffer,"M - ");
+    }
+    if(futureEventFormat != TIME_REMAINING_ONLY){
+      struct tm * eventTime;
+      eventTime = localtime(&events[numEvent].start);
+      if(days > 0) strftime(buf, 20, futureEventFormat == INCLUDE_DATE_MONTH_FIRST ?
+                 "%m/%d":"%d/%m", eventTime);
+      else strftime(buf,20,clock_is_24h_style() ?
+                                          "%H:%M" : "%I:%M%p",eventTime);
+      strcat(buffer,buf);
+    }
+    
     #ifdef DEBUG_EVENTS 
       struct tm *tick_time = localtime((time_t *)&(events[numEvent].start));
       static char s_buffer[16];
@@ -227,6 +256,11 @@ void get_event_color(int numEvent,char * buffer){
     APP_LOG(APP_LOG_LEVEL_DEBUG,"get_event_color:Copying event number %d color:%s ",numEvent,events[numEvent].color);
   #endif
   strcpy(buffer,events[numEvent].color);
+}
+
+//Sets the format for upcoming event time strings
+void setFutureEventTimeFormat(FutureEventFormat format){
+  futureEventFormat = format;
 }
 
 

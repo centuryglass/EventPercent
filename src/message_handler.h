@@ -1,12 +1,12 @@
 /**
-*@File messaging.h
-*Handles all functionality related to
-*communication between the pebble and phone
+*@File message_handler.h
+*Handles application-specific messaging
+*functionality
 */
 #pragma once
 #include <pebble.h>
 
-#define DICT_SIZE 128//AppMessage dictionary size
+
 
 //All valid data update types
 typedef enum{
@@ -20,7 +20,7 @@ typedef enum{
 /**
 *Initializes AppMessage functionality
 */
-void messaging_init();
+void message_handler_init();
 
 /**
 *Shuts down AppMessage functionality

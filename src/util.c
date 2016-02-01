@@ -1,10 +1,21 @@
 #include <pebble.h>
 #include "util.h"
 
+
 static int savedUptime = 0;
 static time_t lastLaunch = 0;
 
-int lastMemUsed = 0;
+
+
+/**
+*Copies the pebble's remaining battery percentage into a buffer
+*@param buffer a buffer of at least 6 bytes
+*/
+void getPebbleBattery(char * buffer){
+  BatteryChargeState charge_state = battery_state_service_peek();
+  snprintf(buffer, 6, "%d%%", charge_state.charge_percent);
+  if (charge_state.is_charging) strcat(buffer,"+");
+}
 
 /**
 *Gets the time since the watchface last launched
@@ -93,73 +104,3 @@ long stol(char * str,int strlen){
 }
 
 
-//debug functions
-#ifdef DEBUG
-//Tests the ltos function
-void ltosTest(){
-  char testBuf [10];
-  strcpy(testBuf,"");
-  long i;
-  for(i = 0;i < 100;i++){
-    strcpy(testBuf,"");
-    ltos(i,testBuf,10);
-    APP_LOG(APP_LOG_LEVEL_DEBUG,"ltos test: Long value:%ld to string:%s",i,testBuf);
-  }
-}
-
-/**
-*Debug method that outputs all values of a dictionary
-*@param it a pointer to a DictionaryIterator
-*that currently has a dictionary open for reading.
-*/
-void debugDictionary(DictionaryIterator * it){
-  DictionaryIterator safeCopy = *it;
-  it = &safeCopy;//makes sure the original iterator isn't disturbed
-  Tuple * dictItem = dict_read_first(it);
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"Reading in a dictionary of size %u",(unsigned int)dict_size(it));
-  int index = 0;
-  while(dictItem != NULL){
-    int key =(int) dictItem->key;
-    long size =(long) dictItem->length;
-    APP_LOG(APP_LOG_LEVEL_DEBUG,"Item no.=%d, key=%d, size=%ld",index,key,size);
-    if(dictItem->type == TUPLE_BYTE_ARRAY){
-      //copy the data into a char array with enough room to add a null char
-      char * bytedata = NULL;
-      bytedata = malloc(size + 1);
-      if(bytedata == NULL){
-        APP_LOG(APP_LOG_LEVEL_DEBUG,"type=byte_array, value=?");
-      }
-      else{
-        memcpy(bytedata,dictItem->value->data,size);
-        bytedata[size] = '\0';
-        APP_LOG(APP_LOG_LEVEL_DEBUG,"type=byte_array, value=%s",bytedata);
-        free(bytedata);
-      }
-    }
-    else if(dictItem->type == TUPLE_CSTRING){
-      APP_LOG(APP_LOG_LEVEL_DEBUG,"type=cstring, value=%s",dictItem->value->cstring);
-    }
-    if(dictItem->type == TUPLE_UINT){
-      APP_LOG(APP_LOG_LEVEL_DEBUG,"type=uInt, value=%u",(unsigned int)dictItem->value->uint32);
-    }
-    if(dictItem->type == TUPLE_INT){
-      APP_LOG(APP_LOG_LEVEL_DEBUG,"type=int, value=%d",(int)dictItem->value->uint32);
-    }
-    index++;
-    dictItem = dict_read_next(it);
-  }
-}
-
-/**debug method that prints memory usage along with
-*a string for identification purposes
-*@param string printed in the debug output
-*/
-void memDebug(char * string){
-  APP_LOG(APP_LOG_LEVEL_DEBUG,"Used:%dB  Free:%dB  Change:%dB  Info:%s",
-          heap_bytes_used(),
-          heap_bytes_free(),
-          heap_bytes_used()-lastMemUsed,
-          string);
-  lastMemUsed = heap_bytes_used();
-}
-#endif

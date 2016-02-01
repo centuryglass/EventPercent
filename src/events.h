@@ -7,7 +7,7 @@
 #pragma once
 #include <pebble.h>
 
-#define MAX_EVENT_LENGTH 64 //Maximum number of characters allowed in an event title
+#define MAX_EVENT_LENGTH 24 //Maximum number of characters allowed in an event title
 #define NUM_EVENTS 2  //Number of events stored
 
 /**
@@ -63,5 +63,17 @@ char *get_event_time_string(int numEvent,char *buffer,int bufSize);
 *@param buffer color string is copied into this, must be at least 7 bytes
 */
 void get_event_color(int numEvent,char * buffer);
+
+typedef enum{
+  TIME_REMAINING_ONLY,
+  INCLUDE_DATE_MONTH_FIRST,
+  INCLUDE_DATE_DAY_FIRST
+} FutureEventFormat;
+
+/**
+*Sets the format for upcoming event time strings
+*@param format the selected format
+*/
+void setFutureEventTimeFormat(FutureEventFormat format);
 
 

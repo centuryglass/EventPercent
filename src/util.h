@@ -6,6 +6,11 @@
 *type conversion functions, debug functions, etc.
 */
 
+/**
+*Copies the pebble's remaining battery percentage into a buffer
+*@param buffer a buffer of at least 6 bytes
+*/
+void getPebbleBattery(char * buffer);
 
 /**
 *Gets the time since the watchface last launched
@@ -61,21 +66,4 @@ char * malloc_set_text(TextLayer * textLayer,char * oldString, char * src);
 */
 long stol(char * str,int strlen);
 
-//debug functions
-#ifdef DEBUG
-/**
-*Debug method that outputs all values of a dictionary
-*@param it a pointer to a DictionaryIterator
-*that currently has a dictionary open for reading.
-*/
-void debugDictionary(DictionaryIterator * it);
 
-/**debug method that prints memory usage along with
-*a string for identification purposes
-*@param string printed in the debug output
-*/
-void memDebug(char * string);
-
-//Tests the ltos Function
-void ltosTest();
-#endif

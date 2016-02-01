@@ -7,33 +7,43 @@
 
 //----------PERSISTANT STORAGE KEYS---------
 enum{
-  //Display string keys
-  PERSIST_KEY_INFOTEXT,
-    //string: infoText data
-  PERSIST_KEY_PHONE_BATTERY,
-    //string: phone battery display string
-  PERSIST_KEY_WEATHER,
-    //string: weather temperature display
-  PERSIST_KEY_STRINGS_END,
-    //marks the end of the display string keys
+  PERSIST_KEY_WEATHER_COND,//int: weather condition code
+  PERSIST_KEY_UPTIME, //int: total watchface uptime in seconds
+  PERSIST_KEY_DATE_FORMAT, //string: date format for strftime
+  PERSIST_KEY_FUTURE_EVENT_FORMAT,//int: FutureEventFormat value
   
-  PERSIST_KEY_WEATHER_COND,
-    //int: weather condition code
-  PERSIST_KEY_UPTIME,
-    //int: total watchface uptime in seconds
-  PERSIST_KEY_UPDATE_FREQS_BEGIN = 20,
-    //int: First update frequency(seconds)
-    //This begins a series of keys holding update frequencies for all update types
-    //Update types are defined in order in messaging.h
-  PERSIST_KEY_LAST_UPDATE_TIMES_BEGIN = 30,
-    //int: time_t first saved latest update time
-    //This begins a series of keys holding latest update time for all update types 
-    //Update types are defined in order in messaging.h
-  PERSIST_KEY_COLORS_BEGIN = 50,
-    //string: The first display color string
-    //This is the first of a sequence of NUM_COLORS color keys
-    //NUM_COLORS is defined in display.h
-  PERSIST_KEY_EVENT_DATA_BEGIN = 99
-    //data: EventStruct data structure from events.c,
-    //saved across as many sequential keys as needed
+  /**
+  *string: first display string
+  *beginning of a sequence of strings holding last saved
+  *display values, in the order defined in display_elements.h
+  */
+  PERSIST_KEY_DISPLAY_STRINGS_BEGIN = 40,
+  
+  /**
+  *int: First update frequency(seconds)
+  *This begins a series of keys holding update frequencies for all update types
+  *Update types are defined in order in messaging.h
+  */
+  PERSIST_KEY_UPDATE_FREQS_BEGIN = 50,
+    
+  /**
+  *int: time_t first saved latest update time
+  *This begins a series of keys holding latest update time for all update types 
+  *Update types are defined in order in messaging.h
+  */
+  PERSIST_KEY_LAST_UPDATE_TIMES_BEGIN = 60,
+    
+  /**
+  *string: The first display color string
+  *This is the first of a sequence of NUM_COLORS color keys
+  *NUM_COLORS is defined in display_elements.h
+  */
+  PERSIST_KEY_COLORS_BEGIN = 70,
+    
+  /**
+  *data: EventStruct data structure from events.c,
+  *saved across as many sequential keys as needed
+  */
+  PERSIST_KEY_EVENT_DATA_BEGIN = 80
+    
 };
