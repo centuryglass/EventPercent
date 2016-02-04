@@ -217,12 +217,17 @@ char *get_event_time_string(int numEvent,char *buffer,int bufSize){
       }
       else strcat(buffer,"H:");
     }
-    if(weeks == 0){
+    if(futureEventFormat == TIME_REMAINING_ONLY){
+      if(weeks == 0){
+        snprintf(buf,20,"%ld",minutes);
+        strcat(buffer,buf);
+        strcat(buffer," Min.");
+      }
+    }
+    else{
       snprintf(buf,20,"%ld",minutes);
       strcat(buffer,buf);
-      if(futureEventFormat == TIME_REMAINING_ONLY)
-        strcat(buffer," Min.");
-      else strcat(buffer,"M - ");
+      strcat(buffer,"M - ");
     }
     if(futureEventFormat != TIME_REMAINING_ONLY){
       struct tm * eventTime;

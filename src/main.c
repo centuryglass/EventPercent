@@ -66,11 +66,23 @@ static void update_time() {
   getPebbleBattery(pbl_battery_buf);
   update_text(pbl_battery_buf,TEXT_PEBBLE_BATTERY);
   //for preview purposes only
-        //add_event(0,"Work",now - 14600,now+23530,"FF0000");
-        //add_event(1,"Sleep",now + 999560,now+1000000,"FFFF00");
-        //update_weather(30,808);
-        //update_text("84%",TEXT_PHONE_BATTERY);
-        //update_text("Cloudy",TEXT_INFOTEXT);
+  /* First example dataset
+  update_text("84%",TEXT_PHONE_BATTERY);
+  add_event(0,"Work",now - 14600,now+23530,"FF0000");
+  add_event(1,"Sleep",now + 999560,now+1000000,"FFFF00");
+  update_weather(30,808);
+  update_text("Cloudy",TEXT_INFOTEXT);
+  */
+  
+  /*Second example dataset
+  char newColors[][7] = {"AAFFFF","555555","000055","550055","",""};
+  update_colors(newColors); 
+  update_text("84%",TEXT_PHONE_BATTERY);
+  update_text("25 Unread",TEXT_INFOTEXT);
+  update_weather(55,508);
+  add_event(0,"School",now - 14600,now+2353,"0000FF");
+  add_event(1,"Movie",now + 9995,now+10000,"00FF00");
+  */
 }
 
 //Automatically called every minute

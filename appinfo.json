@@ -4,7 +4,8 @@
         ""
     ],
     "companyName": "anthony0857@gmail.com",
-    "longName": "EventPercent Calendar",
+    "enableMultiJS": true,
+    "longName": "EventPercent Calendar Watchface",
     "projectType": "native",
     "resources": {
         "media": [

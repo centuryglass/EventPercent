@@ -6,7 +6,7 @@
 
 //-----LOCAL VALUE DEFINITIONS-----
 //#define DEBUG_DISPLAY //uncomment to enable display debug logging
-#define DEFAULT_DATE_FORMAT "%e %b %Y" //default strftime date format
+#define DEFAULT_DATE_FORMAT "%d %b %Y" //default strftime date format
 #define DAY_PROG_W 132
 #define EVENT_PROG_W 141
 
@@ -135,6 +135,10 @@ void update_colors(char colorArray[NUM_COLORS][7]){
       update_color(colorArray[i],i);
     }
   }
+  #ifdef PBL_BW//if monochrome, make sure progress bars are set to text color 
+  update_color(colorArray[TEXT_COLOR],EVENT_0_COLOR);
+  update_color(colorArray[TEXT_COLOR],EVENT_1_COLOR);
+  #endif
 }
 
 //Directly updates display text

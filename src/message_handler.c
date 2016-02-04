@@ -157,6 +157,12 @@ void request_update(UpdateType updateType){
       APP_LOG(APP_LOG_LEVEL_DEBUG,"request_update:Requesting weather update");
       #endif
       break;
+    case UPDATE_TYPE_PEBBLE_STATS:
+      dict_write_int32(&iter, KEY_MESSAGE_CODE, CODE_PEBBLE_STATS_RESPONSE);
+      #ifdef DEBUG_MESSAGING
+      APP_LOG(APP_LOG_LEVEL_DEBUG,"request_update:sending stats update");
+      #endif
+      break;
     default:
       APP_LOG(APP_LOG_LEVEL_ERROR,"request_update:invalid request type");
       return;
@@ -279,12 +285,7 @@ static void process_message(DictionaryIterator *iterator){
         #ifdef DEBUG_MESSAGING
           APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Recieved stats request");
         #endif
-        uint8_t buf[DICT_SIZE];
-        DictionaryIterator iter;
-        dict_write_begin(&iter,buf,DICT_SIZE);
-        dict_write_int32(&iter, KEY_MESSAGE_CODE, CODE_PEBBLE_STATS_RESPONSE);
-        dict_write_end(&iter);
-        add_message(buf);
+        request_update(UPDATE_TYPE_PEBBLE_STATS);
         break;
     }
   }   
