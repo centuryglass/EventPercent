@@ -99,10 +99,14 @@ static int updateFreq[NUM_UPDATE_TYPES] = {DEFAULT_UPDATE_FREQ};
   //Update frequencies sent from android
 
 static void process_message(DictionaryIterator *iterator);
-
+static int appContacted = 0;//1 if the companion app has been reached
 //----------PUBLIC FUNCTIONS----------
 //Initializes AppMessage functionality
 void message_handler_init(){
+  //see if companion app has been contacted
+  if(persist_exists(PERSIST_KEY_COMPANION_APP_CONTACTED)){
+    appContacted = persist_read_int(PERSIST_KEY_COMPANION_APP_CONTACTED);
+  }
   //Load last update times and update frequencies
   for(int i=0;i< NUM_UPDATE_TYPES; i++){
     if(persist_exists(PERSIST_KEY_LAST_UPDATE_TIMES_BEGIN + i))
@@ -122,11 +126,14 @@ void messaging_deinit(){
       persist_write_int(PERSIST_KEY_LAST_UPDATE_TIMES_BEGIN+i,(int)lastUpdate[i]);
       persist_write_int(PERSIST_KEY_UPDATE_FREQS_BEGIN+i,updateFreq[i]);
     }
+    persist_write_int(PERSIST_KEY_COMPANION_APP_CONTACTED,appContacted);
     close_messaging();
 }
 
 //Requests updated info from the companion app
 void request_update(UpdateType updateType){
+  if(appContacted == 0)return;//Don't request updates until connected
+  
   uint8_t buf[DICT_SIZE] = {0};//default buffer values to 0 to avoid 
     //junk data overwriting legitimate keys
   DictionaryIterator iter;
@@ -198,6 +205,14 @@ time_t get_update_time(UpdateType updateType){
 //----------STATIC FUNCTIONS----------
 
 static void process_message(DictionaryIterator *iterator){
+  if(appContacted == 0){//First contact, send info and request updates
+    appContacted = 1;
+    request_update(UPDATE_TYPE_PEBBLE_STATS);
+    request_update(UPDATE_TYPE_EVENT);
+    request_update(UPDATE_TYPE_BATTERY);
+    request_update(UPDATE_TYPE_INFOTEXT);
+    request_update(UPDATE_TYPE_WEATHER);
+  }
   Tuple *message_code = dict_find(iterator,KEY_MESSAGE_CODE);
   if(message_code != NULL){
     switch((AndroidMessageCode) message_code->value->int32){

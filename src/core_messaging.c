@@ -4,6 +4,10 @@
 
 //----------LOCAL VALUE DEFINITIONS----------
 //#define DEBUG_MESSAGING //Uncomment to enable messaging debug logging
+#ifdef DEBUG_MESSAGING
+#include "debug.h"
+#endif
+
 #define RESEND_TIME 60000 //Time to wait before assuming an outgoing message was lost
 
 //----------MESSAGE STACK STRUCTURE----------

@@ -36,6 +36,8 @@ static TextLayer * textLayers[NUM_TEXTLAYERS] = {NULL};
 static char * displayStrings[NUM_TEXTLAYERS] = {NULL};
 static int textColorIDs[NUM_TEXTLAYERS] = {0};
 static int textBackgroundColorIDs[NUM_TEXTLAYERS] = {0};
+
+
 //----------STATIC FUNCTION DECLARATIONS----------
 //Initialization functions:
 static void init_colors();

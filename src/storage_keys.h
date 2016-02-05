@@ -11,6 +11,7 @@ enum{
   PERSIST_KEY_UPTIME, //int: total watchface uptime in seconds
   PERSIST_KEY_DATE_FORMAT, //string: date format for strftime
   PERSIST_KEY_FUTURE_EVENT_FORMAT,//int: FutureEventFormat value
+  PERSIST_KEY_COMPANION_APP_CONTACTED,//int: 1 if the companion app has been found
   
   /**
   *string: first display string
