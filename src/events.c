@@ -104,12 +104,12 @@ void events_deinit(){
       else keysize = PERSIST_DATA_MAX_LENGTH;
       size_t bytesWritten =persist_write_data(PERSIST_KEY_EVENT_DATA_BEGIN+i, index, keysize);
       
+      #ifdef DEBUG_EVENTS 
       if(bytesWritten != keysize){
         APP_LOG(APP_LOG_LEVEL_ERROR,
                        "persist_save_events:Key %d:Expected to write %d bytes, wrote %d",i,(int)keysize,(int)bytesWritten);
       }
-      #ifdef DEBUG_EVENTS 
-        else APP_LOG(APP_LOG_LEVEL_DEBUG,"persist_save_events:Key %d written successfully",i);
+      else APP_LOG(APP_LOG_LEVEL_DEBUG,"persist_save_events:Key %d written successfully",i);
       #endif
       index += bytesWritten;
     }
@@ -122,7 +122,9 @@ void events_deinit(){
 void add_event(int numEvent,char *title,long start,long end,char* color){
   if(!events_initialized)events_init();
   if(numEvent >= NUM_EVENTS){
+    #ifdef DEBUG_EVENTS 
     APP_LOG(APP_LOG_LEVEL_ERROR,"Event %s is out of bounds at index %d",title,numEvent);
+    #endif
     return;
   }
   #ifdef DEBUG_EVENTS 
@@ -179,6 +181,7 @@ char *get_event_time_string(int numEvent,char *buffer,int bufSize){
       request_update(UPDATE_TYPE_EVENT);
       return NULL;
     }
+    
     long time = events[numEvent].start - now;
     long weeks =0,days=0,hours=0,minutes=0;
     if(time>0)weeks = time / 604800;

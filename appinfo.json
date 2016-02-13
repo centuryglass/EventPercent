@@ -10,66 +10,22 @@
     "resources": {
         "media": [
             {
-                "file": "data/imageModels",
-                "name": "IMAGE_MODELS",
+                "file": "data/Bitwise.dat",
+                "name": "BITWISE",
                 "targetPlatforms": null,
                 "type": "raw"
             },
             {
-                "file": "data/textModels",
-                "name": "TEXT_MODELS",
+                "characterRegex": "[0-9:]",
+                "file": "fonts/inconsolata.ttf",
+                "name": "INCONSOLATA_36",
                 "targetPlatforms": null,
-                "type": "raw"
-            },
-            {
-                "file": "images/iconSmall.png",
-                "menuIcon": true,
-                "name": "ICON_SMALL",
-                "targetPlatforms": null,
-                "type": "bitmap"
-            },
-            {
-                "file": "images/weathericons.png",
-                "name": "WEATHER_ICONS",
-                "targetPlatforms": null,
-                "type": "bitmap"
-            },
-            {
-                "file": "images/dayProgress.png",
-                "memoryFormat": "SmallestPalette",
-                "name": "DAY_PROGRESS",
-                "spaceOptimization": "memory",
-                "targetPlatforms": null,
-                "type": "bitmap"
-            },
-            {
-                "file": "images/progress.png",
-                "memoryFormat": "SmallestPalette",
-                "name": "PROGRESS",
-                "spaceOptimization": "memory",
-                "targetPlatforms": null,
-                "type": "bitmap"
-            },
-            {
-                "file": "images/calendar2.png",
-                "memoryFormat": "Smallest",
-                "name": "BG2",
-                "spaceOptimization": "memory",
-                "targetPlatforms": null,
-                "type": "bitmap"
-            },
-            {
-                "file": "images/calendar1.png",
-                "memoryFormat": "2BitPalette",
-                "name": "BG1",
-                "spaceOptimization": "memory",
-                "targetPlatforms": null,
-                "type": "bitmap"
+                "type": "font"
             },
             {
                 "characterRegex": "[0-9:.a-zA-Z%@*! _+,?'\\-\u00b0/]",
-                "file": "fonts/coders_crux.ttf",
-                "name": "CODERS_CRUX_48",
+                "file": "fonts/inconsolata.ttf",
+                "name": "INCONSOLATA_12",
                 "targetPlatforms": null,
                 "type": "font"
             },
@@ -80,6 +36,19 @@
                 "name": "CODERS_CRUX_16",
                 "targetPlatforms": null,
                 "type": "font"
+            },
+            {
+                "characterRegex": "[0-9:]",
+                "file": "fonts/coders_crux.ttf",
+                "name": "CODERS_CRUX_48",
+                "targetPlatforms": null,
+                "type": "font"
+            },
+            {
+                "file": "data/Corinthian.dat",
+                "name": "CORINTHIAN",
+                "targetPlatforms": null,
+                "type": "raw"
             }
         ]
     },

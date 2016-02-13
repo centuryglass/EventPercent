@@ -16,6 +16,18 @@ void display_init();
 */
 void display_deinit();
 
+//Themes
+typedef enum{
+  THEME_BITWISE,
+  THEME_CORINTHIAN
+} Theme;
+
+/**
+*sets the display theme
+*@param theme the new display theme
+*/
+void set_theme(Theme theme);
+
 /**
 *Updates display text for events
 *@param eventNum event index

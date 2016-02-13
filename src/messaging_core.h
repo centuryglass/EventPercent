@@ -1,5 +1,5 @@
 /*
-*@File core_messaging.h
+*@File messaging_core.h
 *Manages sending and receiving of messages
 */
 

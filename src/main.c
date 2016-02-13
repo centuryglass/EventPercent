@@ -4,6 +4,7 @@
 #include "util.h"
 #include "display_handler.h"
 #include "storage_keys.h"
+#include "debug.h"
 
 //----------LOCAL VALUE DEFINITIONS----------
 //#define DEBUG_MAIN  //uncomment to enable main program debug logging
@@ -13,7 +14,14 @@
 *Updates the currently displayed time
 */
 static void update_time() {
+  setPreview1();
+  #ifdef DEBUG_MAIN
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"update_time: starting time update");
+  #endif
   time_t now = time(NULL);
+  #ifdef DEBUG_MAIN
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"update_time: setting display time");
+  #endif
   set_time(now);//update time display
   for(int i = 0; i < NUM_EVENTS; i++){//update display events
     char eventTitle[MAX_EVENT_LENGTH];
@@ -65,24 +73,7 @@ static void update_time() {
   char pbl_battery_buf[6];
   getPebbleBattery(pbl_battery_buf);
   update_text(pbl_battery_buf,TEXT_PEBBLE_BATTERY);
-  //for preview purposes only
-  /* First example dataset
-  update_text("84%",TEXT_PHONE_BATTERY);
-  add_event(0,"Work",now - 14600,now+23530,"FF0000");
-  add_event(1,"Sleep",now + 999560,now+1000000,"FFFF00");
-  update_weather(30,808);
-  update_text("Cloudy",TEXT_INFOTEXT);
-  */
   
-  /*Second example dataset
-  char newColors[][7] = {"AAFFFF","555555","000055","550055","",""};
-  update_colors(newColors); 
-  update_text("84%",TEXT_PHONE_BATTERY);
-  update_text("25 Unread",TEXT_INFOTEXT);
-  update_weather(55,508);
-  add_event(0,"School",now - 14600,now+2353,"0000FF");
-  add_event(1,"Movie",now + 9995,now+10000,"00FF00");
-  */
 }
 
 //Automatically called every minute
@@ -93,7 +84,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 //initialize program
 void handle_init(void) {
   #ifdef DEBUG_MAIN 
-    APP_LOG(APP_LOG_LEVEL_DEBUG,"handle_init:INIT BEGIN");
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"handle_init:INIT BEGIN");
   #endif
   //save launch time for stats
   setLaunchTime(time(NULL));
@@ -103,13 +94,17 @@ void handle_init(void) {
   display_init();
   events_init();
   message_handler_init();
-   // Register with TickTimerService
+  // Register with TickTimerService
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
   // Make sure the time is displayed from the start
   update_time();
   #ifdef DEBUG_MAIN 
   APP_LOG(APP_LOG_LEVEL_DEBUG,"handle_init:INIT SUCCESS");
   #endif 
+  
+  
+  
+  
 }
 
 //unload program

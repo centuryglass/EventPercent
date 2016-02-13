@@ -1,5 +1,5 @@
 #include <pebble.h>
-#include "core_messaging.h"
+#include "messaging_core.h"
 #include "util.h"
 
 //----------LOCAL VALUE DEFINITIONS----------
@@ -82,7 +82,9 @@ void add_message(uint8_t dictBuf[DICT_SIZE]){
   if(!connection_service_peek_pebble_app_connection()) return;//disable messaging if not connected
   if(!init)open_messaging();
   if(messageStackSize > 10){
+    #ifdef DEBUG_MESSAGING
     APP_LOG(APP_LOG_LEVEL_ERROR,"add_message:Too many messages! Deleting old messages");
+    #endif
     while(messageStackSize >0) delete_message();
   }
   #ifdef DEBUG_MESSAGING
@@ -210,10 +212,10 @@ static void resend_message(void * data){
 *@post message data is read and processed
 */
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
-  APP_LOG(APP_LOG_LEVEL_INFO,"inbox_received_callback:Message received");
   #ifdef DEBUG_MESSAGING
-    APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Received message content:");
-    debugDictionary(iterator);
+  APP_LOG(APP_LOG_LEVEL_INFO,"inbox_received_callback:Message received");
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Received message content:");
+  debugDictionary(iterator);
   #endif
   //pass message to the message handler
   if(inbox_handler != NULL)inbox_handler(iterator);  
@@ -225,8 +227,10 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 *@param context is required but unused
 */
 static void inbox_dropped_callback(AppMessageResult reason, void *context) {
-    APP_LOG(APP_LOG_LEVEL_ERROR, "inbox_dropped_callback:Message dropped");
-    log_result_info(reason);
+  #ifdef DEBUG_MESSAGING
+  APP_LOG(APP_LOG_LEVEL_ERROR, "inbox_dropped_callback:Message dropped");
+  log_result_info(reason);
+  #endif
 }
 
 /**
@@ -237,12 +241,14 @@ static void inbox_dropped_callback(AppMessageResult reason, void *context) {
 *@post the message is re-sent
 */
 static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context) {
-    APP_LOG(APP_LOG_LEVEL_ERROR, "outbox_failed_callback:Outbox send failed");
-    log_result_info(reason);
-    //reset timer to give Android more time to receive the message before re-sending
-    if(resend_timer != NULL){
-      app_timer_reschedule(resend_timer, RESEND_TIME);
-    }
+  #ifdef DEBUG_MESSAGING
+  APP_LOG(APP_LOG_LEVEL_ERROR, "outbox_failed_callback:Outbox send failed");
+  log_result_info(reason);
+  #endif
+  //reset timer to give Android more time to receive the message before re-sending
+  if(resend_timer != NULL){
+    app_timer_reschedule(resend_timer, RESEND_TIME);
+  }
 }
 
 /**
@@ -252,7 +258,9 @@ static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResul
 *@post the sent message is removed from the message queue
 */
 static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
+  #ifdef DEBUG_MESSAGING
   APP_LOG(APP_LOG_LEVEL_INFO, "outbox_sent_callback:Outbox send success!");
+  #endif
   app_timer_cancel(resend_timer);
   resend_timer = NULL;//cancel re-send timer
   delete_message();//delete successfully sent message
@@ -266,52 +274,53 @@ static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
 *@param result the message result
 */
 static void log_result_info(AppMessageResult result){
-    switch(result){
-      case APP_MSG_OK:
-        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_OK");
-        break;
-      case APP_MSG_SEND_TIMEOUT:
-        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_SEND_TIMEOUT");
-        break;
-      case APP_MSG_SEND_REJECTED:
-        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_SEND_REJECTED");
-        break;
-      case APP_MSG_NOT_CONNECTED:
-        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_NOT_CONNECTED");
-        break;
-      case APP_MSG_APP_NOT_RUNNING:
-        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_APP_NOT_RUNNING");
-        break;
-      case APP_MSG_INVALID_ARGS:
-        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_INVALID_ARGS");
-        break;
-      case APP_MSG_BUSY:
-        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_BUSY");
-        break;
-      case APP_MSG_BUFFER_OVERFLOW:
-        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_BUFFER_OVERFLOW");
-        break;
-      case APP_MSG_ALREADY_RELEASED:
-        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_ALREADY_RELEASED");
-        break;
-      case APP_MSG_CALLBACK_ALREADY_REGISTERED:
-        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_CALLBACK_ALREADY_REGISTERED");
-        break;
-      case APP_MSG_CALLBACK_NOT_REGISTERED:
-        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_CALLBACK_NOT_REGISTERED");
-        break;
-      case APP_MSG_OUT_OF_MEMORY:
-        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_OUT_OF_MEMORY");
-        break;
-      case APP_MSG_CLOSED:
-        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_CLOSED");
-        break;
-      case APP_MSG_INTERNAL_ERROR:
-        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_INTERNAL_ERROR");
-        break;
-      case APP_MSG_INVALID_STATE:
-        APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_INVALID_STATE");
-        break;
+  #ifdef DEBUG_MESSAGING
+  switch(result){
+    case APP_MSG_OK:
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_OK");
+      break;
+    case APP_MSG_SEND_TIMEOUT:
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_SEND_TIMEOUT");
+      break;
+    case APP_MSG_SEND_REJECTED:
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_SEND_REJECTED");
+      break;
+    case APP_MSG_NOT_CONNECTED:
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_NOT_CONNECTED");
+      break;
+    case APP_MSG_APP_NOT_RUNNING:
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_APP_NOT_RUNNING");
+      break;
+    case APP_MSG_INVALID_ARGS:
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_INVALID_ARGS");
+      break;
+    case APP_MSG_BUSY:
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_BUSY");
+      break;
+    case APP_MSG_BUFFER_OVERFLOW:
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_BUFFER_OVERFLOW");
+      break;
+    case APP_MSG_ALREADY_RELEASED:
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_ALREADY_RELEASED");
+      break;
+    case APP_MSG_CALLBACK_ALREADY_REGISTERED:
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_CALLBACK_ALREADY_REGISTERED");
+      break;
+    case APP_MSG_CALLBACK_NOT_REGISTERED:
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_CALLBACK_NOT_REGISTERED");
+      break;
+    case APP_MSG_OUT_OF_MEMORY:
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_OUT_OF_MEMORY");
+      break;
+    case APP_MSG_CLOSED:
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_CLOSED");
+      break;
+    case APP_MSG_INTERNAL_ERROR:
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_INTERNAL_ERROR");
+      break;
+    case APP_MSG_INVALID_STATE:
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Error code: APP_MSG_INVALID_STATE");
+      break;
   }
-  
+  #endif
 }

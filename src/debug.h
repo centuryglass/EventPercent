@@ -12,3 +12,7 @@ void debugDictionary(DictionaryIterator * it);
 *@param string printed in the debug output
 */
 void memDebug(char * string);
+
+void setPreview1();
+
+void setPreview2();

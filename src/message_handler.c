@@ -2,7 +2,7 @@
 #include "message_handler.h"
 #include "display_handler.h"
 #include "display_elements.h"
-#include "core_messaging.h"
+#include "messaging_core.h"
 #include "events.h"
 #include "util.h"
 #include "storage_keys.h"
@@ -50,6 +50,8 @@ enum{
     //cstring: date format recognizable by strftime
   KEY_FUTURE_EVENT_TIME_FORMAT,
     //int32: index of the enum FutureEventFormat type selected, sent from Android
+  KEY_DISPLAY_THEME,
+    //int32: index of the enum Theme type selected, sent from Android
   KEY_UPDATE_FREQS_BEGIN = 30,
     //int32: First update frequency(seconds), sent from Android
     //This begins a series of keys holding update frequencies for all update types
@@ -87,7 +89,7 @@ typedef enum{
     //Message providing updated weather data
   CODE_COLOR_UPDATE,
     //Message providing updated color data
-  CODE_PEBBLE_STATS_REQUEST
+  CODE_PEBBLE_STATS_REQUEST,
     //Message requesting assorted Pebble information
 } AndroidMessageCode;
 
@@ -187,7 +189,7 @@ void request_update(UpdateType updateType){
   dict_write_int32(&iter, KEY_MEMORY_FREE, (int)heap_bytes_free());
   dict_write_end(&iter);
   #ifdef DEBUG_MESSAGING
-    APP_LOG(APP_LOG_LEVEL_DEBUG,"request_update:Attempting to send request");
+  APP_LOG(APP_LOG_LEVEL_DEBUG,"request_update:Attempting to send request");
   #endif
   add_message(buf);
 }
@@ -218,7 +220,7 @@ static void process_message(DictionaryIterator *iterator){
     switch((AndroidMessageCode) message_code->value->int32){
       case CODE_EVENT_RESPONSE:{
         #ifdef DEBUG_MESSAGING
-          APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Recieved CODE_EVENT_RESPONSE");
+        APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Recieved CODE_EVENT_RESPONSE");
         #endif
         lastUpdate[UPDATE_TYPE_EVENT] = time(NULL);//set last event update time
         Tuple *title = dict_find(iterator,KEY_EVENT_TITLE);
@@ -238,13 +240,13 @@ static void process_message(DictionaryIterator *iterator){
       }     
       case CODE_BATTERY_RESPONSE:{
         #ifdef DEBUG_MESSAGING
-          APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Recieved CODE_BATTERY_RESPONSE");
+        APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Recieved CODE_BATTERY_RESPONSE");
         #endif
         lastUpdate[UPDATE_TYPE_BATTERY] = time(NULL);
         Tuple *battery = dict_find(iterator,KEY_BATTERY_UPDATE);
         if(battery != NULL){
           #ifdef DEBUG_MESSAGING
-            APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Getting battery info");
+          APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Getting battery info");
           #endif
           update_text(battery->value->cstring,TEXT_PHONE_BATTERY);
         }
@@ -252,13 +254,13 @@ static void process_message(DictionaryIterator *iterator){
       }    
       case CODE_INFOTEXT_RESPONSE:{
         #ifdef DEBUG_MESSAGING
-          APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Recieved CODE_INFOTEXT_RESPONSE");
+        APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Recieved CODE_INFOTEXT_RESPONSE");
         #endif
         lastUpdate[UPDATE_TYPE_INFOTEXT] = time(NULL);
         Tuple *infoText = dict_find(iterator,KEY_INFOTEXT);
         if(infoText != NULL){
           #ifdef DEBUG_MESSAGING
-            APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Getting infoText");
+          APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Getting infoText");
           #endif
           update_text(infoText->value->cstring,TEXT_INFOTEXT);
         }
@@ -266,7 +268,7 @@ static void process_message(DictionaryIterator *iterator){
       }  
       case CODE_WEATHER_RESPONSE:{
         #ifdef DEBUG_MESSAGING
-          APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Recieved CODE_WEATHER_RESPONSE");
+        APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Recieved CODE_WEATHER_RESPONSE");
         #endif
         lastUpdate[UPDATE_TYPE_WEATHER] = time(NULL);//set last weather update time
         Tuple * temp = dict_find(iterator,KEY_TEMPERATURE);
@@ -274,7 +276,7 @@ static void process_message(DictionaryIterator *iterator){
   
         if(temp != NULL && cond != NULL){
           #ifdef DEBUG_MESSAGING
-            APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Getting weather info");
+          APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Getting weather info");
           #endif
           update_weather(temp->value->int32,cond->value->int32);
         }
@@ -282,11 +284,14 @@ static void process_message(DictionaryIterator *iterator){
       }
       case CODE_COLOR_UPDATE:{
         #ifdef DEBUG_MESSAGING
-          APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Recieved CODE_COLOR_UPDATE");
+        APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Recieved CODE_COLOR_UPDATE");
         #endif
-        int i;
+        Tuple * theme = dict_find(iterator,KEY_DISPLAY_THEME);//check for theme update
+        if(theme != NULL){
+          set_theme(theme->value->int32);
+          
         char newColors [NUM_COLORS][7];
-        for(i=0;i<NUM_COLORS;i++){
+        for(int i=0;i<NUM_COLORS;i++){
           Tuple * color = dict_find(iterator,KEY_COLORS_BEGIN+i);
           if(color != NULL){
             strncpy(newColors[i],color->value->cstring,sizeof(newColors[i]));
@@ -298,12 +303,13 @@ static void process_message(DictionaryIterator *iterator){
       case CODE_PEBBLE_STATS_REQUEST:{
         //Send out a message just carrying extra data
         #ifdef DEBUG_MESSAGING
-          APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Recieved stats request");
+        APP_LOG(APP_LOG_LEVEL_DEBUG,"inbox_received_callback:Recieved stats request");
         #endif
         request_update(UPDATE_TYPE_PEBBLE_STATS);
         break;
-    }
-  }   
+        }
+      }
+    }   
   
     //Save new update frequencies, if received
     for(int i=0;i<NUM_UPDATE_TYPES;i++){
@@ -319,5 +325,7 @@ static void process_message(DictionaryIterator *iterator){
     if(futureEventTimeFormat != NULL)
       setFutureEventTimeFormat(futureEventTimeFormat->value->int32);  
   }
+  #ifdef DEBUG_MESSAGING
   else APP_LOG(APP_LOG_LEVEL_ERROR, "inbox_dropped_callback:Received message with no message code!");
+  #endif
 }

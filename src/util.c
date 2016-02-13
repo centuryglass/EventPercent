@@ -61,6 +61,7 @@ void setLaunchTime(time_t launchTime){
 char * malloc_strcpy(char * dest, char * src){
   if(dest != NULL){
     free(dest);
+    dest = NULL;
   }
   dest = malloc(strlen(src) + 1);
   if(dest != NULL) strcpy(dest,src);
@@ -81,7 +82,9 @@ char * malloc_set_text(TextLayer * textLayer,char * oldString, char * src){
   char * newString = malloc(strlen(src) + 1);
   strcpy(newString,src);
   text_layer_set_text(textLayer, newString);
-  if(oldString != NULL) free(oldString);
+  if(oldString != NULL){
+    free(oldString);
+  }
   return newString;
 }
 
